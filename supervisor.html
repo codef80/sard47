@@ -4,249 +4,479 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>لوحة المشرف</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link rel="stylesheet" href="css/sard.css"/>
   <style>
-    .page-wrap { padding: 20px; max-width: 1100px; margin: auto; padding-bottom: 40px; }
-    .user-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #fff; flex-wrap: wrap; transition: box-shadow .2s; }
-    .user-card:hover { box-shadow: var(--shadow-sm); }
-    .user-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--primary-lt); display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 800; font-size: 1rem; flex-shrink: 0; }
-    .stat-card { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; position: relative; overflow: hidden; }
-    .stat-card .big { font-size: 2.2rem; font-weight: 800; color: var(--primary); line-height: 1; }
-    .stat-card .lbl { font-size: .78rem; color: var(--text-muted); margin-bottom: 4px; }
-    .stat-icon { position: absolute; left: -8px; bottom: -8px; font-size: 4rem; opacity: .07; }
-    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-    .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: #fff; font-family: 'Tajawal',sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all .2s; }
-    .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .att-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-    .att-bar-wrap { background: #e2e8f0; border-radius: 99px; overflow: hidden; height: 8px; margin-top: 6px; }
-    .att-bar-fill { height: 100%; border-radius: 99px; }
+    body{background:var(--bg);}
+    /* ── SIDEBAR LAYOUT ── */
+    .sup-layout{display:flex;min-height:100vh;}
+    .sidebar{width:220px;background:var(--primary);position:fixed;top:0;right:0;bottom:0;display:flex;flex-direction:column;z-index:200;transition:transform .3s;}
+    .sidebar-brand{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px;}
+    .sidebar-brand i{color:var(--gold);font-size:1.3rem;}
+    .sidebar-brand span{color:#fff;font-size:1rem;font-weight:800;line-height:1.2;}
+    .sidebar-cx{color:rgba(255,255,255,.55);font-size:.72rem;margin-top:2px;}
+    .sidebar-nav{flex:1;padding:10px 0;overflow-y:auto;}
+    .snav-section{padding:8px 14px 4px;font-size:.68rem;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:.06em;text-transform:uppercase;}
+    .snav-btn{display:flex;align-items:center;gap:10px;padding:10px 16px;border:none;background:transparent;color:rgba(255,255,255,.7);font-family:'Tajawal',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;width:100%;text-align:right;transition:all .18s;border-right:3px solid transparent;}
+    .snav-btn:hover{background:rgba(255,255,255,.08);color:#fff;}
+    .snav-btn.active{background:rgba(255,255,255,.14);color:#fff;border-right-color:var(--gold);}
+    .snav-btn i{width:18px;text-align:center;font-size:.95rem;}
+    .snav-btn .badge-count{margin-right:auto;background:var(--danger);color:#fff;border-radius:20px;padding:1px 7px;font-size:.7rem;}
+    .sidebar-footer{padding:12px 14px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:8px;}
+    .sidebar-footer .user-name{color:rgba(255,255,255,.8);font-size:.82rem;flex:1;}
+    .sidebar-footer button{background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;font-size:.95rem;padding:4px;}
+    .sidebar-footer button:hover{color:#fff;}
+    /* ── MAIN AREA ── */
+    .sup-main{margin-right:220px;flex:1;min-height:100vh;}
+    .sup-topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
+    .page-title{font-size:1.05rem;font-weight:800;color:var(--primary);display:flex;align-items:center;gap:8px;}
+    .sup-content{padding:24px;max-width:1100px;}
+    /* ── TAB ── */
+    .tab-pane{display:none;}.tab-pane.active{display:block;}
+    /* ── CARDS ── */
+    .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+    @media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+    .kpi-s{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:16px 18px;position:relative;overflow:hidden;}
+    .kpi-s .big{font-size:2rem;font-weight:800;color:var(--primary);line-height:1;}
+    .kpi-s .lbl{font-size:.75rem;color:var(--text-muted);margin-bottom:4px;}
+    .kpi-s .ico{position:absolute;left:-8px;bottom:-8px;font-size:3.8rem;opacity:.07;}
+    .kpi-s .big.green{color:var(--success);} .kpi-s .big.red{color:var(--danger);} .kpi-s .big.gold{color:var(--gold);}
+    /* ── USER CARDS ── */
+    .ucard{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:#fff;flex-wrap:wrap;}
+    .ucard:hover{box-shadow:var(--shadow-sm);}
+    .uavatar{width:38px;height:38px;border-radius:50%;background:var(--primary-lt);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:800;font-size:.95rem;flex-shrink:0;}
+    /* ── FILTER BAR ── */
+    .fbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+    .fbtn{padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-family:'Tajawal',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .2s;}
+    .fbtn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+    /* ── HALAQAS GRID ── */
+    .halaqa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+    .hcard{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:border-color .2s;}
+    .hcard:hover{border-color:var(--primary);}
+    .hcard-info{flex:1;}
+    .hcard-name{font-weight:700;font-size:.9rem;color:var(--text);}
+    .hcard-count{font-size:.75rem;color:var(--text-muted);margin-top:2px;}
+    /* ── SETTINGS ── */
+    .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:768px){.settings-grid{grid-template-columns:1fr;}}
+    /* ── IMPORT MODAL ── */
+    .sheets-tip{background:var(--primary-lt);border-radius:var(--radius-sm);padding:10px 14px;font-size:.82rem;color:var(--primary);line-height:1.7;margin-bottom:12px;}
+    /* ── PROGRESS BAR ── */
+    .pbar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:5px;}
+    .pbar-fill{height:100%;border-radius:3px;transition:width .4s;}
+    /* ── MOBILE ── */
+    @media(max-width:768px){
+      .sidebar{transform:translateX(100%);}.sidebar.open{transform:translateX(0);}
+      .sup-main{margin-right:0;}
+      .sup-topbar{padding:0 14px;}
+      .sup-content{padding:14px;}
+      .kpi-row{grid-template-columns:1fr 1fr;}
+    }
+    .mob-menu-btn{display:none;background:none;border:none;color:var(--primary);font-size:1.3rem;cursor:pointer;}
+    @media(max-width:768px){.mob-menu-btn{display:block;}}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:199;}
+    .sidebar-overlay.open{display:block;}
+    /* ── PENDING BADGE ── */
+    #pendingBadge{display:none;background:var(--danger);color:#fff;border-radius:20px;padding:1px 7px;font-size:.7rem;margin-right:auto;}
+    /* ── TWO-COL ── */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:768px){.two-col{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
 
 <div id="spinner" class="spinner-overlay">
   <div class="spinner-box">
-    <div class="spinner-border text-primary" style="width:48px;height:48px;border-width:4px;--bs-primary:#014979;"></div>
+    <div class="spinner-border" style="width:48px;height:48px;border-width:4px;border-color:#e8f2fb;border-top-color:#014979;border-style:solid;border-radius:50%;animation:spin 1s linear infinite;"></div>
     <p>جارٍ التحميل...</p>
   </div>
 </div>
 
-<nav class="navbar-sard">
-  <div class="navbar-brand">
-    <i class="fas fa-shield-halved"></i>
-    <span>لوحة المشرف</span>
-    <span id="navComplexName" style="font-size:.8rem;opacity:.7;font-weight:400;"></span>
-  </div>
-  <div class="nav-links">
-    <button class="nav-link-btn active" onclick="showTab('overview')" id="nt-overview"><i class="fas fa-chart-pie"></i> نظرة عامة</button>
-    <button class="nav-link-btn" onclick="showTab('users')" id="nt-users"><i class="fas fa-users"></i> المستخدمون</button>
-    <button class="nav-link-btn" onclick="showTab('halaqas')" id="nt-halaqas"><i class="fas fa-sitemap"></i> الحلقات</button>
-    <button class="nav-link-btn" onclick="showTab('reports')" id="nt-reports"><i class="fas fa-chart-bar"></i> التقارير</button>
-    <button class="nav-link-btn" onclick="showTab('settings')" id="nt-settings"><i class="fas fa-cog"></i> الإعدادات</button>
-  </div>
-  <div class="d-flex align-center gap-2">
-    <span id="navUser" style="font-size:.85rem;color:rgba(255,255,255,.8);"></span>
-    <a href="index.html" style="background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.8);cursor:pointer;font-size:.85rem;padding:6px 12px;border-radius:16px;text-decoration:none;font-family:Tajawal,sans-serif;font-weight:600;">
-      <i class="fas fa-home"></i> التطبيق
-    </a>
-    <button onclick="doLogout()" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1rem;" title="خروج"><i class="fas fa-sign-out-alt"></i></button>
-  </div>
-</nav>
+<!-- overlay للموبايل -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-<div class="page-wrap">
+<div class="sup-layout">
 
-  <!-- ══════ نظرة عامة ══════ -->
-  <div id="tab-overview" class="tab-content">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" class="kpi-grid">
-      <div class="stat-card"><div class="lbl">إجمالي الطلاب</div><div class="big" id="statStudents">—</div><i class="fas fa-user-graduate stat-icon"></i></div>
-      <div class="stat-card"><div class="lbl">الحلقات</div><div class="big" id="statHalaqas">—</div><i class="fas fa-sitemap stat-icon"></i></div>
-      <div class="stat-card"><div class="lbl">المسمّعون النشطون</div><div class="big" id="statReciters">—</div><i class="fas fa-microphone stat-icon"></i></div>
-      <div class="stat-card"><div class="lbl">جلسات اليوم</div><div class="big green" id="statToday">—</div><i class="fas fa-calendar-check stat-icon"></i></div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="overview-grid">
-      <div class="card-sard">
-        <div class="card-title"><i class="fas fa-chart-line" style="color:var(--gold);"></i> أداء الحلقات</div>
-        <div id="halaqaPerf" style="display:flex;flex-direction:column;gap:10px;"></div>
-      </div>
-      <div class="card-sard">
-        <div class="card-title"><i class="fas fa-clock" style="color:var(--primary);"></i> طلبات الانضمام المعلقة</div>
-        <div id="pendingRequests" style="display:flex;flex-direction:column;gap:8px;"></div>
-        <p id="noPending" class="text-muted text-center" style="padding:20px 0;display:none;">لا توجد طلبات معلقة ✓</p>
+  <!-- ════ SIDEBAR ════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-shield-halved"></i>
+      <div>
+        <div>لوحة المشرف</div>
+        <div class="sidebar-cx" id="sbComplexName">...</div>
       </div>
     </div>
-  </div>
 
-  <!-- ══════ المستخدمون ══════ -->
-  <div id="tab-users" class="tab-content" style="display:none;">
-    <div class="card-sard">
-      <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
-        <div class="card-title" style="margin-bottom:0;"><i class="fas fa-users"></i> إدارة المستخدمين</div>
-      </div>
+    <nav class="sidebar-nav">
+      <div class="snav-section">عام</div>
+      <button class="snav-btn active" onclick="showPane('overview')" id="sn-overview">
+        <i class="fas fa-chart-pie"></i> نظرة عامة
+      </button>
 
-      <div class="filter-bar">
-        <button class="filter-btn active" onclick="filterUsers('all',this)">الكل</button>
-        <button class="filter-btn" onclick="filterUsers('pending',this)">بانتظار الموافقة</button>
-        <button class="filter-btn" onclick="filterUsers('active',this)">نشطون</button>
-        <button class="filter-btn" onclick="filterUsers('rejected',this)">مرفوضون</button>
-        <input type="text" id="userSearch" class="form-control" placeholder="بحث بالاسم..." style="width:200px;margin-right:auto;" oninput="filterUsersSearch()"/>
-      </div>
+      <div class="snav-section">إدارة</div>
+      <button class="snav-btn" onclick="showPane('users')" id="sn-users">
+        <i class="fas fa-users"></i> المستخدمون
+        <span class="badge-count" id="pendingBadge" style="display:none;">0</span>
+      </button>
+      <button class="snav-btn" onclick="showPane('students')" id="sn-students">
+        <i class="fas fa-user-graduate"></i> الطلاب والحلقات
+      </button>
 
-      <div id="usersList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="snav-section">متابعة</div>
+      <button class="snav-btn" onclick="showPane('attendance')" id="sn-attendance">
+        <i class="fas fa-clipboard-check"></i> الحضور
+      </button>
+      <button class="snav-btn" onclick="showPane('reports')" id="sn-reports">
+        <i class="fas fa-chart-bar"></i> التقارير
+      </button>
+
+      <div class="snav-section">تهيئة</div>
+      <button class="snav-btn" onclick="showPane('reciter-settings')" id="sn-reciter-settings">
+        <i class="fas fa-sliders-h"></i> إعدادات التسميع
+      </button>
+      <button class="snav-btn" onclick="showPane('settings')" id="sn-settings">
+        <i class="fas fa-cog"></i> إعدادات المجمع
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-name" id="sbUserName">...</div>
+      <a id="sbAppLink" href="#" title="التطبيق الرئيسي" style="color:rgba(255,255,255,.55);font-size:.95rem;padding:4px;">
+        <i class="fas fa-home"></i>
+      </a>
+      <button onclick="doLogout()" title="خروج"><i class="fas fa-sign-out-alt"></i></button>
     </div>
-  </div>
+  </aside>
 
-  <!-- ══════ الحلقات ══════ -->
-  <div id="tab-halaqas" class="tab-content" style="display:none;">
-    <div class="card-sard">
-      <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
-        <div class="card-title" style="margin-bottom:0;"><i class="fas fa-sitemap"></i> إدارة الحلقات</div>
-        <button class="btn-primary-sard" onclick="openAddHalaqa()"><i class="fas fa-plus"></i> إضافة حلقة</button>
+  <!-- ════ MAIN ════ -->
+  <main class="sup-main">
+    <div class="sup-topbar">
+      <div class="d-flex align-center gap-2">
+        <button class="mob-menu-btn" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
+        <div class="page-title" id="pageTitle"><i class="fas fa-chart-pie"></i> نظرة عامة</div>
       </div>
-      <div id="halaqasList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="d-flex align-center gap-2">
+        <button class="btn-outline-sard" onclick="loadAll()" style="padding:6px 12px;font-size:.82rem;">
+          <i class="fas fa-rotate"></i> تحديث
+        </button>
+      </div>
     </div>
 
-    <div class="card-sard">
-      <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
-        <div class="card-title" style="margin-bottom:0;"><i class="fas fa-user-graduate"></i> إدارة الطلاب</div>
-        <div class="d-flex gap-2">
-          <button class="btn-outline-sard" onclick="openImportStudents()"><i class="fas fa-file-import"></i> استيراد</button>
-          <button class="btn-primary-sard" onclick="openAddStudent()"><i class="fas fa-plus"></i> طالب جديد</button>
+    <div class="sup-content">
+
+      <!-- ════ نظرة عامة ════ -->
+      <div class="tab-pane active" id="pane-overview">
+        <div class="kpi-row" id="kpiRow">
+          <div class="kpi-s"><div class="lbl">إجمالي الطلاب</div><div class="big" id="kpiStudents">—</div><i class="fas fa-user-graduate ico"></i></div>
+          <div class="kpi-s"><div class="lbl">الحلقات</div><div class="big" id="kpiHalaqas">—</div><i class="fas fa-sitemap ico"></i></div>
+          <div class="kpi-s"><div class="lbl">المسمّعون النشطون</div><div class="big" id="kpiReciters">—</div><i class="fas fa-microphone ico"></i></div>
+          <div class="kpi-s"><div class="lbl">جلسات اليوم</div><div class="big green" id="kpiToday">—</div><i class="fas fa-calendar-check ico"></i></div>
         </div>
-      </div>
-
-      <div class="filter-bar">
-        <select id="halaqaFilter" class="form-select" style="width:180px;" onchange="renderStudentsList()">
-          <option value="">كل الحلقات</option>
-        </select>
-        <input type="text" id="studentSearch" class="form-control" placeholder="بحث..." style="width:200px;" oninput="renderStudentsList()"/>
-      </div>
-
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead><tr><th>الاسم</th><th>الهوية</th><th>الحلقة</th><th>المسار</th><th>الأجزاء</th><th>جوال ولي الأمر</th><th></th></tr></thead>
-          <tbody id="studentsList"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══════ التقارير ══════ -->
-  <div id="tab-reports" class="tab-content" style="display:none;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-
-      <div class="card-sard">
-        <div class="card-title"><i class="fas fa-clipboard-check" style="color:var(--gold);"></i> تقرير الحضور</div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div>
-            <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">من</label>
-            <input type="date" id="attFrom" class="form-control"/>
+        <div class="two-col">
+          <div class="card-sard">
+            <div class="card-title"><i class="fas fa-chart-line" style="color:var(--gold);"></i> أداء الحلقات اليوم</div>
+            <div id="halaqaPerf" style="display:flex;flex-direction:column;gap:10px;"></div>
           </div>
-          <div>
-            <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">إلى</label>
-            <input type="date" id="attTo" class="form-control"/>
+          <div class="card-sard">
+            <div class="card-title"><i class="fas fa-clock" style="color:var(--danger);"></i> طلبات الانضمام المعلقة</div>
+            <div id="pendingList" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <p id="noPending" class="text-muted text-center" style="padding:20px 0;display:none;">لا توجد طلبات معلقة ✓</p>
           </div>
-          <button class="btn-primary-sard" onclick="loadAttReport()"><i class="fas fa-search"></i> عرض التقرير</button>
-        </div>
-        <div id="attReportResult" style="margin-top:16px;"></div>
-      </div>
-
-      <div class="card-sard">
-        <div class="card-title"><i class="fas fa-link" style="color:var(--primary);"></i> روابط التقارير</div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <a href="#" onclick="openReport('pages/report-complex.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-building-columns" style="color:var(--gold);"></i> تقرير المجمع والحلق</a>
-          <a href="#" onclick="openReport('pages/report-complex-tracks.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-route" style="color:var(--gold);"></i> تقرير المجمع والمسارات</a>
-          <a href="#" onclick="openReport('pages/report-halaqas.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-users-rectangle" style="color:var(--gold);"></i> تقرير الحلق التفصيلي</a>
-          <a href="#" onclick="openReport('pages/report-tracks.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-diagram-project" style="color:var(--gold);"></i> تقرير المسارات التفصيلي</a>
-          <a href="#" onclick="openReport('pages/report-honor.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-award" style="color:var(--gold);"></i> صفحة التكريم</a>
-          <a href="#" onclick="openReport('pages/report-students.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-magnifying-glass-chart" style="color:var(--gold);"></i> استعلام الطلاب</a>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ══════ الإعدادات ══════ -->
-  <div id="tab-settings" class="tab-content" style="display:none;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-
-      <div class="card-sard">
-        <div class="card-title"><i class="fas fa-users-gear"></i> إعدادات القبول</div>
-
-        <div class="setting-row">
-          <div>
-            <div class="setting-label">وضع قبول المستخدمين</div>
-            <div class="setting-desc">تلقائي: يُقبل فوراً. يدوي: تحتاج موافقتك</div>
+      <!-- ════ المستخدمون ════ -->
+      <div class="tab-pane" id="pane-users">
+        <div class="card-sard">
+          <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;"><i class="fas fa-users"></i> إدارة المستخدمين</div>
           </div>
-          <select id="regMode" class="form-select" style="width:130px;">
-            <option value="auto">تلقائي</option>
-            <option value="manual">يدوي</option>
-          </select>
-        </div>
-
-        <div class="mt-4">
-          <button class="btn-primary-sard" onclick="saveRegistrationMode()"><i class="fas fa-save"></i> حفظ</button>
+          <div class="fbar">
+            <button class="fbtn active" onclick="filterUsers('all',this)">الكل</button>
+            <button class="fbtn" onclick="filterUsers('pending',this)">معلق <span id="pendingCount" style="background:var(--danger);color:#fff;border-radius:10px;padding:0 6px;font-size:.7rem;"></span></button>
+            <button class="fbtn" onclick="filterUsers('active',this)">نشط</button>
+            <button class="fbtn" onclick="filterUsers('rejected',this)">مرفوض</button>
+            <input type="text" id="userSearch" class="form-control" placeholder="بحث بالاسم..." style="width:190px;margin-right:auto;" oninput="renderUsers()"/>
+          </div>
+          <div id="usersList" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
       </div>
 
-      <div class="card-sard">
-        <div class="card-title"><i class="fas fa-link"></i> رابط الانضمام</div>
-        <p class="text-muted" style="font-size:.85rem;margin-bottom:12px;">شارك هذا الرابط مع المسمّعين للانضمام</p>
-        <div class="link-box" style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;display:flex;align-items:center;gap:10px;">
-          <input type="text" id="complexLink" readonly style="flex:1;border:none;background:transparent;font-family:Tajawal,sans-serif;font-size:.88rem;color:var(--primary);font-weight:600;direction:ltr;"/>
-          <button onclick="copyLink()" class="btn-outline-sard" style="padding:8px 12px;"><i class="fas fa-copy"></i></button>
+      <!-- ════ الطلاب والحلقات ════ -->
+      <div class="tab-pane" id="pane-students">
+
+        <!-- الحلقات -->
+        <div class="card-sard">
+          <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;"><i class="fas fa-sitemap" style="color:var(--gold);"></i> الحلقات</div>
+            <button class="btn-primary-sard" onclick="openAddHalaqa()"><i class="fas fa-plus"></i> حلقة جديدة</button>
+          </div>
+          <div class="halaqa-grid" id="halaqaGrid"></div>
         </div>
 
-        <div class="card-title mt-4"><i class="fab fa-whatsapp" style="color:#25D366;"></i> قالب قبول واتساب</div>
-        <p class="text-muted" style="font-size:.82rem;margin-bottom:8px;">يُستخدم عند القبول اليدوي. المتغيرات: <code>{اسم}</code> <code>{رابط}</code></p>
-        <textarea id="approvalTemplate" class="form-control" rows="4" placeholder="مثال:&#10;السلام عليكم {اسم}&#10;تم قبول طلبك في برنامج السرد&#10;رابطك: {رابط}"></textarea>
-        <button class="btn-primary-sard mt-3" onclick="saveApprovalTemplate()"><i class="fas fa-save"></i> حفظ القالب</button>
+        <!-- الطلاب -->
+        <div class="card-sard">
+          <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;"><i class="fas fa-user-graduate" style="color:var(--gold);"></i> الطلاب</div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn-outline-sard" onclick="openImportSheets()"><i class="fas fa-table"></i> استيراد Sheets</button>
+              <button class="btn-outline-sard" onclick="openImportPaste()"><i class="fas fa-paste"></i> لصق بيانات</button>
+              <button class="btn-primary-sard" onclick="openAddStudent()"><i class="fas fa-plus"></i> طالب جديد</button>
+            </div>
+          </div>
+          <div class="fbar">
+            <select id="halaqaFilter" class="form-control" style="width:170px;" onchange="renderStudents()">
+              <option value="">كل الحلقات</option>
+            </select>
+            <input type="text" id="studentSearch" class="form-control" placeholder="بحث بالاسم أو الهوية..." style="width:210px;" oninput="renderStudents()"/>
+            <span id="studentCountBadge" class="badge-sard badge-prim" style="margin-right:auto;"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>الاسم</th><th>الهوية</th><th>الحلقة</th><th>المسار</th><th>الأجزاء</th><th>جوال ولي الأمر</th><th></th></tr></thead>
+              <tbody id="studentsList"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-</div>
+      <!-- ════ الحضور ════ -->
+      <div class="tab-pane" id="pane-attendance">
+        <div class="card-sard">
+          <div class="card-title"><i class="fas fa-clipboard-check" style="color:var(--gold);"></i> تقرير الحضور</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+            <div>
+              <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">من</label>
+              <input type="date" id="attFrom" class="form-control" style="width:160px;"/>
+            </div>
+            <div>
+              <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">إلى</label>
+              <input type="date" id="attTo" class="form-control" style="width:160px;"/>
+            </div>
+            <div>
+              <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">الحلقة</label>
+              <select id="attHalaqaFilter" class="form-control" style="width:160px;">
+                <option value="">كل الحلقات</option>
+              </select>
+            </div>
+            <button class="btn-primary-sard" onclick="loadAttReport()"><i class="fas fa-search"></i> عرض</button>
+            <button class="btn-outline-sard" onclick="exportAttCSV()"><i class="fas fa-file-export"></i> تصدير CSV</button>
+          </div>
+          <div id="attStats" style="display:none;margin-bottom:12px;"></div>
+          <div id="attResult">
+            <div class="empty-state"><i class="fas fa-calendar-check"></i><p>اختر الفترة الزمنية وانقر "عرض"</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ التقارير ════ -->
+      <div class="tab-pane" id="pane-reports">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+          <div class="card-sard" style="cursor:pointer;" onclick="openReport('pages/report-complex.html')">
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--primary-lt);display:flex;align-items:center;justify-content:center;margin-bottom:12px;"><i class="fas fa-building-columns" style="color:var(--primary);font-size:1.3rem;"></i></div>
+            <div style="font-weight:800;margin-bottom:4px;">تقرير المجمع والحلق</div>
+            <div class="text-muted" style="font-size:.8rem;">نظرة شاملة على أداء المجمع والحلقات</div>
+          </div>
+          <div class="card-sard" style="cursor:pointer;" onclick="openReport('pages/report-complex-tracks.html')">
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--gold-lt);display:flex;align-items:center;justify-content:center;margin-bottom:12px;"><i class="fas fa-route" style="color:var(--gold);font-size:1.3rem;"></i></div>
+            <div style="font-weight:800;margin-bottom:4px;">تقرير المجمع والمسارات</div>
+            <div class="text-muted" style="font-size:.8rem;">أداء المجمع مصنّف حسب المسارات</div>
+          </div>
+          <div class="card-sard" style="cursor:pointer;" onclick="openReport('pages/report-halaqas.html')">
+            <div style="width:48px;height:48px;border-radius:12px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;margin-bottom:12px;"><i class="fas fa-users-rectangle" style="color:var(--success);font-size:1.3rem;"></i></div>
+            <div style="font-weight:800;margin-bottom:4px;">تقرير الحلق التفصيلي</div>
+            <div class="text-muted" style="font-size:.8rem;">تفاصيل كل طالب مع جدول مقاطعه</div>
+          </div>
+          <div class="card-sard" style="cursor:pointer;" onclick="openReport('pages/report-tracks.html')">
+            <div style="width:48px;height:48px;border-radius:12px;background:#fef3f2;display:flex;align-items:center;justify-content:center;margin-bottom:12px;"><i class="fas fa-diagram-project" style="color:var(--danger);font-size:1.3rem;"></i></div>
+            <div style="font-weight:800;margin-bottom:4px;">تقرير المسارات التفصيلي</div>
+            <div class="text-muted" style="font-size:.8rem;">تفاصيل كل مسار وطلابه</div>
+          </div>
+          <div class="card-sard" style="cursor:pointer;" onclick="openReport('pages/report-honor.html')">
+            <div style="width:48px;height:48px;border-radius:12px;background:#fefce8;display:flex;align-items:center;justify-content:center;margin-bottom:12px;"><i class="fas fa-award" style="color:#ca8a04;font-size:1.3rem;"></i></div>
+            <div style="font-weight:800;margin-bottom:4px;">صفحة التكريم</div>
+            <div class="text-muted" style="font-size:.8rem;">المتفوقون مع إمكانية إرسال واتساب</div>
+          </div>
+          <div class="card-sard" style="cursor:pointer;" onclick="openReport('pages/report-students.html')">
+            <div style="width:48px;height:48px;border-radius:12px;background:#f0f9ff;display:flex;align-items:center;justify-content:center;margin-bottom:12px;"><i class="fas fa-magnifying-glass-chart" style="color:#0284c7;font-size:1.3rem;"></i></div>
+            <div style="font-weight:800;margin-bottom:4px;">استعلام نتائج الطلاب</div>
+            <div class="text-muted" style="font-size:.8rem;">بحث عن نتائج أي طالب بالتفصيل</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ إعدادات التسميع ════ -->
+      <div class="tab-pane" id="pane-reciter-settings">
+        <div class="card-sard">
+          <div class="card-title"><i class="fas fa-sliders-h"></i> إعدادات التسميع</div>
+          <p class="text-muted" style="font-size:.85rem;margin-bottom:20px;">هذه الإعدادات تؤثر على طريقة عمل المسمّعين وحساب الدرجات</p>
+
+          <div class="setting-row">
+            <div><div class="setting-label">تقسيم الجزء</div><div class="setting-desc">عدد مقاطع الجزء الواحد (1، 2، أو 4)</div></div>
+            <select id="s-partsDivisions" class="form-control" style="width:90px;">
+              <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">خصم الخطأ</div><div class="setting-desc">نقاط تُخصم لكل خطأ</div></div>
+            <input type="number" id="s-mistakeDeduction" class="form-control" style="width:90px;" step="0.25" min="0"/>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">خصم التنبيه</div><div class="setting-desc">نقاط تُخصم لكل تنبيه</div></div>
+            <input type="number" id="s-warningDeduction" class="form-control" style="width:90px;" step="0.25" min="0"/>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">درجة النجاح</div><div class="setting-desc">الحد الأدنى لاجتياز المقطع</div></div>
+            <input type="number" id="s-passingScore" class="form-control" style="width:90px;" step="0.5" min="0"/>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">إظهار المسار مع الطالب</div><div class="setting-desc">يظهر اسم المسار بجانب الطالب عند الاختيار</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="s-showTrack"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">استخدام المسارات فقط</div><div class="setting-desc">إخفاء الحلقات والاستناد للمسارات</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="s-hideHalaqas"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">إلزام سبب الرسوب</div><div class="setting-desc">يُطلب من المسمّع تحديد وجه الرسوب</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="s-requireFail"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">المسار النشط</div><div class="setting-desc">مسار يُضاف فوق قائمة الحلقات</div></div>
+            <select id="s-activeTrack" class="form-control" style="width:180px;"></select>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">قفل الملف كامل</div><div class="setting-desc">يلزم رمزاً قبل بدء التسميع</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="s-lockFullFile"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">إظهار زر التقارير للمسمّع</div><div class="setting-desc">يُظهر زر التقارير في شريط التنقل</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="s-showReports"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">إظهار زر حذف المقطع</div><div class="setting-desc">يُظهر زر حذف تسجيل المقطع</div></div>
+            <label class="toggle-wrap"><input type="checkbox" id="s-showDeleteSection"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">رمز قفل الإعدادات</div><div class="setting-desc">فارغ = بدون قفل (يُستخدم أيضاً لقفل التحضير)</div></div>
+            <input type="password" id="s-lockCode" class="form-control" style="width:140px;" placeholder="فارغ = بدون قفل"/>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">رمز تعديل المقاطع</div><div class="setting-desc">فارغ = تعديل حر للمسمّع</div></div>
+            <input type="password" id="s-editCode" class="form-control" style="width:140px;" placeholder="فارغ = تعديل حر"/>
+          </div>
+        </div>
+
+        <div class="card-sard">
+          <div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> قالب رسالة نتيجة التسميع</div>
+          <p class="text-muted" style="font-size:.85rem;margin-bottom:10px;">
+            المتغيرات: <code>{اسم_الطالب}</code> <code>{الحلقة}</code> <code>{الدرجة}</code> <code>{المسمع}</code>
+            <code>{اجزاء_مجتازة}</code> <code>{اجزاء_رسوب}</code> <code>{اجزاء_محفوظة}</code> <code>{اجزاء_معروضة}</code> <code>{النسبة}</code>
+          </p>
+          <textarea id="s-whatsapp" class="form-control" rows="5" placeholder="مثال:&#10;السلام عليكم&#10;نتيجة {اسم_الطالب}: {اجزاء_مجتازة} مجتازة من {اجزاء_معروضة} معروضة&#10;النسبة: {النسبة}"></textarea>
+        </div>
+
+        <div class="card-sard">
+          <div class="card-title"><i class="fas fa-route"></i> إعدادات المسارات الخاصة</div>
+          <p class="text-muted" style="font-size:.85rem;margin-bottom:12px;">كل مسار يمكن أن يُلغي الإعدادات العامة أعلاه</p>
+          <div id="trackConfigsList"></div>
+          <button class="btn-outline-sard mt-3" onclick="addTrackConfig()"><i class="fas fa-plus"></i> إضافة مسار</button>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn-primary-sard" onclick="doSaveReciterSettings()" id="saveReciterBtn" style="padding:12px 28px;font-size:.95rem;">
+            <i class="fas fa-save"></i> حفظ إعدادات التسميع
+          </button>
+        </div>
+      </div>
+
+      <!-- ════ إعدادات المجمع ════ -->
+      <div class="tab-pane" id="pane-settings">
+        <div class="two-col">
+
+          <div class="card-sard">
+            <div class="card-title"><i class="fas fa-users-gear"></i> إعدادات القبول</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">وضع قبول المستخدمين الجدد</div>
+                <div class="setting-desc">تلقائي: يدخل فوراً — يدوي: يحتاج موافقتك</div>
+              </div>
+              <select id="regMode" class="form-control" style="width:130px;">
+                <option value="auto">تلقائي</option>
+                <option value="manual">يدوي</option>
+              </select>
+            </div>
+            <div class="mt-4">
+              <button class="btn-primary-sard" onclick="saveRegMode()"><i class="fas fa-save"></i> حفظ</button>
+            </div>
+          </div>
+
+          <div class="card-sard">
+            <div class="card-title"><i class="fas fa-link"></i> رابط الانضمام</div>
+            <p class="text-muted" style="font-size:.85rem;margin-bottom:10px;">شارك هذا الرابط مع المسمّعين</p>
+            <div style="display:flex;gap:8px;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;">
+              <input type="text" id="complexLink" readonly style="flex:1;border:none;background:transparent;font-family:'Tajawal',sans-serif;font-size:.85rem;color:var(--primary);font-weight:600;direction:ltr;"/>
+              <button onclick="copyLink()" class="btn-outline-sard" style="padding:6px 12px;"><i class="fas fa-copy"></i></button>
+            </div>
+          </div>
+
+          <div class="card-sard">
+            <div class="card-title"><i class="fab fa-whatsapp" style="color:#25D366;"></i> قالب رسالة قبول واتساب</div>
+            <p class="text-muted" style="font-size:.82rem;margin-bottom:8px;">يُستخدم عند القبول اليدوي. المتغيرات: <code>{اسم}</code> <code>{رابط}</code></p>
+            <textarea id="approvalTemplate" class="form-control" rows="4" placeholder="مثال:&#10;السلام عليكم {اسم}&#10;تم قبول طلبك، رابطك: {رابط}"></textarea>
+            <button class="btn-primary-sard mt-3" onclick="saveApprovalTemplate()"><i class="fas fa-save"></i> حفظ القالب</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- end sup-content -->
+  </main>
+
+</div><!-- end sup-layout -->
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script>
-// =============================================
+// ═══════════════════════════════════════
 // STATE
-// =============================================
+// ═══════════════════════════════════════
 const S = {
-  user: null, complexId: null, complexCode: '',
-  users: [], halaqas: [], students: [], records: [],
-  settings: {}, allUsersFiltered: [], filterStatus: 'all'
+  user:null, complexId:null, complexCode:'',
+  users:[], halaqas:[], students:[], records:[],
+  settings:{}, trackConfigs:[],
+  filterStatus:'all', attData:[]
 };
 
-// =============================================
+// ═══════════════════════════════════════
 // INIT
-// =============================================
+// ═══════════════════════════════════════
 window.addEventListener('load', async () => {
-  const params = new URLSearchParams(location.search);
-  const code = params.get('c') || localStorage.getItem('sard_complex_code') || '';
-  if (!code) { location.href = 'register.html'; return; }
+  const p = new URLSearchParams(location.search);
+  const code = p.get('c') || localStorage.getItem('sard_complex_code') || '';
+  if (!code) { location.href='register.html'; return; }
   S.complexCode = code;
 
   showSpinner();
   try {
     const profile = await SardAPI.getCurrentUser();
     if (!profile || !['supervisor','superadmin'].includes(profile.role)) {
-      hideSpinner(); showToast('غير مصرح لك بالدخول','error');
-      setTimeout(() => location.href='index.html?c='+code, 1500); return;
+      hideSpinner(); showToast('غير مصرح لك','error');
+      setTimeout(()=>location.href='index.html?c='+code, 1500); return;
     }
-    if (profile.status !== 'active') { hideSpinner(); location.href = 'index.html?c='+code; return; }
+    if (profile.status !== 'active') { hideSpinner(); location.href='index.html?c='+code; return; }
+
     S.user = profile;
-    S.complexId = profile.complex_id;
+    S.complexId = profile.complex_id || (await SardAPI.getComplexByCode(code)).id;
 
     const complex = await SardAPI.getComplexByCode(code);
-    document.getElementById('navComplexName').textContent = '— ' + complex.name;
-    document.getElementById('navUser').textContent = profile.name || '';
-    document.getElementById('complexLink').value = location.origin + '/index.html?c=' + code;
+    document.getElementById('sbComplexName').textContent = complex.name;
+    document.getElementById('sbUserName').textContent = profile.name || '';
+    document.getElementById('sbAppLink').href = 'index.html?c=' + code;
+    document.getElementById('complexLink').value = location.origin + location.pathname.replace('supervisor.html','') + 'index.html?c=' + code;
 
     await loadAll();
     hideSpinner();
@@ -254,454 +484,625 @@ window.addEventListener('load', async () => {
 });
 
 async function loadAll() {
-  const [users, halaqas, students, records, settings] = await Promise.all([
+  const [users, halaqas, students, records, settings, trackConfigs] = await Promise.all([
     SardAPI.getUsersInComplex(S.complexId),
     SardAPI.getHalaqas(S.complexId),
     SardAPI.getStudents(S.complexId),
     SardAPI.getRecords(S.complexId),
-    SardAPI.getSettings(S.complexId)
+    SardAPI.getSettings(S.complexId),
+    SardAPI.getTrackConfigs(S.complexId)
   ]);
-  S.users = users; S.halaqas = halaqas; S.students = students; S.records = records; S.settings = settings;
-  S.allUsersFiltered = users;
+  S.users=users; S.halaqas=halaqas; S.students=students;
+  S.records=records; S.settings=settings; S.trackConfigs=trackConfigs;
+
+  // pending badge
+  const pending = users.filter(u=>u.status==='pending').length;
+  const pb = document.getElementById('pendingBadge');
+  if (pb) { pb.textContent=pending; pb.style.display=pending?'':'none'; }
+  const pc = document.getElementById('pendingCount');
+  if (pc) pc.textContent = pending||'';
 
   renderOverview();
-  renderUsersList();
-  renderHalaqasList();
-  renderStudentsList();
-  loadSettingsTab();
+  renderUsers();
+  renderHalaqas();
+  renderStudents();
+  loadSettingsForm();
+  loadAttHalaqaFilter();
 }
 
 async function doLogout() {
-  await SardAPI.signOut(); sessionStorage.clear(); location.href = 'index.html';
+  await SardAPI.signOut(); sessionStorage.clear(); location.href='index.html';
 }
-function openReport(page) {
-  window.open(page + '?c=' + S.complexCode, '_blank');
-}
+function openReport(page) { window.open(page+'?c='+S.complexCode,'_blank'); }
 
-// ─── TABS ───
-function showTab(id) {
-  document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
-  document.getElementById('tab-'+id).style.display='block';
-  document.querySelectorAll('.nav-link-btn').forEach(b=>b.classList.remove('active'));
-  const nb=document.getElementById('nt-'+id); if(nb)nb.classList.add('active');
-}
+// ═══════════════════════════════════════
+// SIDEBAR & PANES
+// ═══════════════════════════════════════
+const paneTitles = {
+  overview:'نظرة عامة', users:'المستخدمون', students:'الطلاب والحلقات',
+  attendance:'الحضور', reports:'التقارير',
+  'reciter-settings':'إعدادات التسميع', settings:'إعدادات المجمع'
+};
+const paneIcons = {
+  overview:'fa-chart-pie', users:'fa-users', students:'fa-user-graduate',
+  attendance:'fa-clipboard-check', reports:'fa-chart-bar',
+  'reciter-settings':'fa-sliders-h', settings:'fa-cog'
+};
 
-// =============================================
+function showPane(id) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.snav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  const sn = document.getElementById('sn-'+id); if(sn) sn.classList.add('active');
+  document.getElementById('pageTitle').innerHTML = `<i class="fas ${paneIcons[id]||'fa-circle'}"></i> ${paneTitles[id]||id}`;
+  closeSidebar();
+}
+function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+
+// ═══════════════════════════════════════
 // OVERVIEW
-// =============================================
+// ═══════════════════════════════════════
 function renderOverview() {
   const activeReciters = S.users.filter(u=>u.role==='reciter'&&u.status==='active').length;
   const today = new Date().toISOString().split('T')[0];
-  const todaySessions = S.records.filter(r => { const s=r.sections||[]; return s.some(sec=>sec.date===today); }).length;
+  const todaySessions = S.records.filter(r=>(r.sections||[]).some(s=>s.date===today)).length;
 
-  document.getElementById('statStudents').textContent = S.students.length;
-  document.getElementById('statHalaqas').textContent  = S.halaqas.length;
-  document.getElementById('statReciters').textContent = activeReciters;
-  document.getElementById('statToday').textContent    = todaySessions;
+  document.getElementById('kpiStudents').textContent = S.students.length;
+  document.getElementById('kpiHalaqas').textContent  = S.halaqas.length;
+  document.getElementById('kpiReciters').textContent = activeReciters;
+  document.getElementById('kpiToday').textContent    = todaySessions;
 
   // أداء الحلقات
   const hp = document.getElementById('halaqaPerf');
   hp.innerHTML = '';
+  if (!S.halaqas.length) { hp.innerHTML='<p class="text-muted text-center" style="padding:20px 0;">لا توجد حلقات</p>'; }
   S.halaqas.forEach(h => {
     const studs = S.students.filter(s=>s.halaqa_id===h.id);
     if (!studs.length) return;
-    const recs = S.records.filter(r=>studs.some(s=>s.id===r.student_id));
-    const sections = recs.flatMap(r=>r.sections||[]).filter(s=>s.partNumber);
+    const sections = S.records.filter(r=>studs.some(s=>s.id===r.student_id)).flatMap(r=>r.sections||[]).filter(s=>s.partNumber);
     const passed = sections.filter(s=>s.isPassed).length;
     const pct = sections.length ? Math.round(passed/sections.length*100) : 0;
-    const barColor = pct>=80?'#1a7a4a':pct>=50?'#d97706':'#c0392b';
-    hp.innerHTML += `
-      <div>
-        <div class="d-flex justify-between align-center" style="margin-bottom:4px;">
-          <span class="fw-bold" style="font-size:.88rem;">${escapeHtml(h.name)}</span>
-          <span style="font-size:.78rem;color:${barColor};font-weight:700;">${pct}% · ${studs.length} طالب</span>
-        </div>
-        <div class="att-bar-wrap"><div class="att-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
-      </div>`;
+    const color = pct>=80?'#1a7a4a':pct>=50?'#d97706':'#c0392b';
+    hp.innerHTML += `<div>
+      <div class="d-flex justify-between align-center" style="margin-bottom:4px;">
+        <span class="fw-bold" style="font-size:.88rem;">${escapeHtml(h.name)}</span>
+        <span style="font-size:.78rem;color:${color};font-weight:700;">${pct}% · ${studs.length} طالب</span>
+      </div>
+      <div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${color};"></div></div>
+    </div>`;
   });
-  if (!S.halaqas.length) hp.innerHTML = '<p class="text-muted text-center" style="padding:20px 0;">لا توجد حلقات بعد</p>';
 
   // الطلبات المعلقة
   const pending = S.users.filter(u=>u.status==='pending');
-  const pr = document.getElementById('pendingRequests');
-  const np = document.getElementById('noPending');
-  pr.innerHTML = '';
-  if (!pending.length) { np.style.display='block'; return; }
-  np.style.display='none';
-  pending.forEach(u => {
-    pr.innerHTML += `
-      <div class="user-card">
-        <div class="d-flex align-center gap-2">
-          <div class="user-avatar">${escapeHtml((u.name||'?').charAt(0))}</div>
-          <div><div class="fw-bold" style="font-size:.9rem;">${escapeHtml(u.name||'')}</div><div class="text-muted" style="font-size:.75rem;">${escapeHtml(u.phone||'—')}</div></div>
-        </div>
-        <div class="d-flex gap-2">
-          <button class="btn-success-sard" style="padding:6px 14px;font-size:.82rem;" onclick="approveUser('${u.id}','${jsString(u.name||'')}')"><i class="fas fa-check"></i> قبول</button>
-          <button class="btn-danger-sard" style="padding:6px 14px;font-size:.82rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-times"></i> رفض</button>
-        </div>
-      </div>`;
-  });
+  document.getElementById('noPending').style.display = pending.length?'none':'block';
+  document.getElementById('pendingList').innerHTML = pending.map(u=>`
+    <div class="ucard">
+      <div class="d-flex align-center gap-2">
+        <div class="uavatar">${escapeHtml((u.name||'?')[0])}</div>
+        <div><div class="fw-bold" style="font-size:.9rem;">${escapeHtml(u.name||'')}</div>
+        <div class="text-muted" style="font-size:.75rem;">${escapeHtml(u.phone||'—')}</div></div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn-success-sard" style="padding:6px 12px;font-size:.8rem;" onclick="approveUser('${u.id}','${jsString(u.name||'')}')"><i class="fas fa-check"></i> قبول</button>
+        <button class="btn-danger-sard" style="padding:6px 12px;font-size:.8rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-times"></i> رفض</button>
+      </div>
+    </div>`).join('');
 }
 
-// =============================================
+// ═══════════════════════════════════════
 // USERS
-// =============================================
+// ═══════════════════════════════════════
 function filterUsers(status, btn) {
   S.filterStatus = status;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  renderUsersList();
+  renderUsers();
 }
-function filterUsersSearch() { renderUsersList(); }
-
-function renderUsersList() {
-  const q = (document.getElementById('userSearch')?.value||'').trim().toLowerCase();
-  let list = S.users.filter(u => {
-    if (S.filterStatus !== 'all' && u.status !== S.filterStatus) return false;
-    if (q && !(u.name||'').toLowerCase().includes(q)) return false;
+function renderUsers() {
+  const q=(document.getElementById('userSearch')?.value||'').toLowerCase();
+  const list=S.users.filter(u=>{
+    if(S.filterStatus!=='all'&&u.status!==S.filterStatus)return false;
+    if(q&&!(u.name||'').toLowerCase().includes(q))return false;
     return true;
   });
-
-  const el = document.getElementById('usersList');
-  if (!list.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-users"></i><p>لا يوجد مستخدمون</p></div>'; return; }
-  el.innerHTML = list.map(u => `
-    <div class="user-card">
+  const el=document.getElementById('usersList');
+  if(!list.length){el.innerHTML='<div class="empty-state"><i class="fas fa-users"></i><p>لا يوجد مستخدمون</p></div>';return;}
+  const roleMap={superadmin:'سوبر أدمن',supervisor:'مشرف',reciter:'مسمّع'};
+  const statusMap={active:'نشط',pending:'معلق',rejected:'مرفوض'};
+  el.innerHTML=list.map(u=>`
+    <div class="ucard">
       <div class="d-flex align-center gap-2">
-        <div class="user-avatar">${escapeHtml((u.name||'?').charAt(0))}</div>
+        <div class="uavatar">${escapeHtml((u.name||'?')[0])}</div>
         <div>
           <div class="fw-bold" style="font-size:.9rem;">${escapeHtml(u.name||'')}</div>
           <div class="d-flex gap-2 flex-wrap" style="margin-top:3px;">
-            <span class="role-badge role-${u.role}">${{superadmin:'سوبر أدمن',supervisor:'مشرف',reciter:'مسمّع'}[u.role]||u.role}</span>
-            <span class="status-badge status-${u.status}">${{active:'نشط',pending:'معلق',rejected:'مرفوض'}[u.status]||u.status}</span>
+            <span class="role-badge role-${u.role}">${roleMap[u.role]||u.role}</span>
+            <span class="status-badge status-${u.status}">${statusMap[u.status]||u.status}</span>
             ${u.phone?`<span class="text-muted" style="font-size:.75rem;">${escapeHtml(u.phone)}</span>`:''}
           </div>
         </div>
       </div>
       <div class="d-flex gap-2 flex-wrap">
         ${u.status==='pending'?`
-          <button class="btn-success-sard" style="padding:5px 12px;font-size:.8rem;" onclick="approveUser('${u.id}','${jsString(u.name||'')}')"><i class="fas fa-check"></i> قبول</button>
-          <button class="btn-danger-sard" style="padding:5px 12px;font-size:.8rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-times"></i> رفض</button>
-        `:''}
-        ${u.status==='active'&&u.role==='reciter'?`<button class="btn-danger-sard" style="padding:5px 12px;font-size:.8rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-ban"></i> إلغاء تفعيل</button>`:''}
-        ${u.status==='rejected'?`<button class="btn-success-sard" style="padding:5px 12px;font-size:.8rem;" onclick="approveUser('${u.id}','${jsString(u.name||'')}')"><i class="fas fa-redo"></i> إعادة تفعيل</button>`:''}
+          <button class="btn-success-sard" style="padding:5px 10px;font-size:.8rem;" onclick="approveUser('${u.id}','${jsString(u.name||'')}')"><i class="fas fa-check"></i> قبول</button>
+          <button class="btn-danger-sard" style="padding:5px 10px;font-size:.8rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-times"></i> رفض</button>`:''}
+        ${u.status==='active'&&u.role==='reciter'?`<button class="btn-danger-sard" style="padding:5px 10px;font-size:.8rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-ban"></i> إلغاء</button>`:''}
+        ${u.status==='rejected'?`<button class="btn-success-sard" style="padding:5px 10px;font-size:.8rem;" onclick="approveUser('${u.id}','${jsString(u.name||'')}')"><i class="fas fa-redo"></i> إعادة</button>`:''}
       </div>
     </div>`).join('');
 }
 
-async function approveUser(userId, userName) {
-  await SardAPI.updateUserStatus(userId, 'active');
-  const user = S.users.find(u=>u.id===userId);
-  if (user) user.status = 'active';
-  showSaveSuccess('تم قبول ' + userName);
-  renderUsersList();
-  renderOverview();
-
-  // إرسال واتساب إذا كان وضع يدوي وفي قالب
-  const tpl = S.settings.approval_whatsapp_template;
-  const u = S.users.find(u=>u.id===userId);
-  if (tpl && u && u.phone) {
-    const link = location.origin + '/index.html?c=' + S.complexCode;
-    const msg = tpl.replace(/{اسم}/g, userName||'').replace(/{رابط}/g, link);
-    const phone = String(u.phone).replace(/\D/g,'');
-    const r = await Swal.fire({ icon:'question', title:'إرسال واتساب', text:'هل تريد إرسال رسالة القبول على واتساب؟', showCancelButton:true, confirmButtonText:'<i class="fab fa-whatsapp"></i> إرسال', cancelButtonText:'تخطي', confirmButtonColor:'#25D366', cancelButtonColor:'#64748b' });
-    if (r.isConfirmed) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank');
+async function approveUser(id, name) {
+  await SardAPI.updateUserStatus(id,'active');
+  const u=S.users.find(u=>u.id===id); if(u)u.status='active';
+  showSaveSuccess('تم قبول '+name);
+  renderUsers(); renderOverview();
+  // إرسال واتساب إذا كان وضع يدوي
+  const tpl=S.settings.approval_whatsapp_template;
+  if(tpl&&u&&u.phone){
+    const link=location.origin+location.pathname.replace('supervisor.html','')+'index.html?c='+S.complexCode;
+    const msg=tpl.replace(/{اسم}/g,name||'').replace(/{رابط}/g,link);
+    const phone=String(u.phone).replace(/\D/g,'');
+    const r=await Swal.fire({icon:'question',title:'إرسال رسالة القبول',html:`هل تريد إرسال رسالة قبول لـ <b>${escapeHtml(name)}</b> على واتساب؟`,showCancelButton:true,confirmButtonText:'<i class="fab fa-whatsapp"></i> إرسال',cancelButtonText:'تخطي',confirmButtonColor:'#25D366',cancelButtonColor:'#64748b'});
+    if(r.isConfirmed)window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank');
   }
 }
 
-async function rejectUser(userId) {
-  const r = await Swal.fire({ icon:'warning', title:'تأكيد الرفض', text:'هل تريد رفض/إلغاء تفعيل هذا المستخدم؟', showCancelButton:true, confirmButtonText:'نعم', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b' });
-  if (!r.isConfirmed) return;
-  await SardAPI.updateUserStatus(userId, 'rejected');
-  const user = S.users.find(u=>u.id===userId);
-  if (user) user.status = 'rejected';
-  showToast('تم الرفض', 'success');
-  renderUsersList(); renderOverview();
+async function rejectUser(id) {
+  const r=await Swal.fire({icon:'warning',title:'تأكيد',text:'هل تريد رفض/إلغاء تفعيل هذا المستخدم؟',showCancelButton:true,confirmButtonText:'نعم',cancelButtonText:'إلغاء',confirmButtonColor:'#c0392b'});
+  if(!r.isConfirmed)return;
+  await SardAPI.updateUserStatus(id,'rejected');
+  const u=S.users.find(u=>u.id===id); if(u)u.status='rejected';
+  showToast('تم','success'); renderUsers(); renderOverview();
 }
 
-// =============================================
+// ═══════════════════════════════════════
 // HALAQAS
-// =============================================
-function renderHalaqasList() {
-  const el = document.getElementById('halaqasList');
-  if (!S.halaqas.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-sitemap"></i><p>لا توجد حلقات بعد</p></div>'; return; }
-  el.innerHTML = S.halaqas.map(h => {
-    const count = S.students.filter(s=>s.halaqa_id===h.id).length;
-    return `<div class="user-card">
-      <div class="d-flex align-center gap-2">
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--primary-lt);display:flex;align-items:center;justify-content:center;"><i class="fas fa-sitemap" style="color:var(--primary);"></i></div>
-        <div><div class="fw-bold">${escapeHtml(h.name)}</div><div class="text-muted" style="font-size:.78rem;">${count} طالب</div></div>
+// ═══════════════════════════════════════
+function renderHalaqas() {
+  const grid=document.getElementById('halaqaGrid');
+  if(!S.halaqas.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-sitemap"></i><p>لا توجد حلقات بعد — أضف حلقة أو استورد طلاباً</p></div>';return;}
+  grid.innerHTML=S.halaqas.map(h=>{
+    const cnt=S.students.filter(s=>s.halaqa_id===h.id).length;
+    return `<div class="hcard">
+      <div class="hcard-info">
+        <div class="hcard-name"><i class="fas fa-sitemap" style="color:var(--primary);margin-left:6px;font-size:.85rem;"></i>${escapeHtml(h.name)}</div>
+        <div class="hcard-count">${cnt} طالب</div>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn-outline-sard" style="padding:5px 12px;font-size:.8rem;" onclick="editHalaqa('${h.id}','${jsString(h.name)}')"><i class="fas fa-edit"></i> تعديل</button>
-        <button class="btn-danger-sard" style="padding:5px 12px;font-size:.8rem;" onclick="deleteHalaqa('${h.id}','${jsString(h.name)}')"><i class="fas fa-trash"></i></button>
+      <div class="d-flex gap-1">
+        <button class="btn-outline-sard" style="padding:4px 9px;font-size:.78rem;" onclick="editHalaqa('${h.id}','${jsString(h.name)}')"><i class="fas fa-edit"></i></button>
+        <button class="btn-danger-sard" style="padding:4px 9px;font-size:.78rem;" onclick="deleteHalaqa('${h.id}','${jsString(h.name)}')"><i class="fas fa-trash"></i></button>
       </div>
     </div>`;
   }).join('');
-
-  // تحديث filter الطلاب
-  const sel = document.getElementById('halaqaFilter');
-  sel.innerHTML = '<option value="">كل الحلقات</option>' + S.halaqas.map(h=>`<option value="${h.id}">${escapeHtml(h.name)}</option>`).join('');
+  // تحديث filter
+  const sel=document.getElementById('halaqaFilter');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">كل الحلقات</option>'+S.halaqas.map(h=>`<option value="${h.id}" ${h.id===prev?'selected':''}>${escapeHtml(h.name)}</option>`).join('');
+  // حضور filter
+  const attSel=document.getElementById('attHalaqaFilter');
+  if(attSel)attSel.innerHTML='<option value="">كل الحلقات</option>'+S.halaqas.map(h=>`<option value="${h.id}">${escapeHtml(h.name)}</option>`).join('');
 }
 
 async function openAddHalaqa() {
-  const { value: name } = await Swal.fire({ title:'إضافة حلقة', input:'text', inputPlaceholder:'اسم الحلقة', confirmButtonText:'إضافة', cancelButtonText:'إلغاء', showCancelButton:true, confirmButtonColor:'#014979' });
-  if (!name) return;
+  const {value:name}=await Swal.fire({title:'إضافة حلقة',input:'text',inputPlaceholder:'اسم الحلقة',confirmButtonText:'إضافة',cancelButtonText:'إلغاء',showCancelButton:true,confirmButtonColor:'#014979',inputValidator:v=>{if(!v.trim())return'أدخل اسم الحلقة';}});
+  if(!name)return;
   showSpinner();
-  try { await SardAPI.createHalaqa(S.complexId, name); await loadAll(); hideSpinner(); showSaveSuccess('تمت إضافة الحلقة'); }
-  catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+  try{await SardAPI.createHalaqa(S.complexId,name.trim());await loadAll();hideSpinner();showSaveSuccess('تمت إضافة الحلقة');}
+  catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }
 
-async function editHalaqa(id, oldName) {
-  const { value: name } = await Swal.fire({ title:'تعديل الحلقة', input:'text', inputValue:oldName, confirmButtonText:'حفظ', cancelButtonText:'إلغاء', showCancelButton:true, confirmButtonColor:'#014979' });
-  if (!name || name === oldName) return;
+async function editHalaqa(id,oldName) {
+  const{value:name}=await Swal.fire({title:'تعديل الحلقة',input:'text',inputValue:oldName,confirmButtonText:'حفظ',cancelButtonText:'إلغاء',showCancelButton:true,confirmButtonColor:'#014979'});
+  if(!name||name===oldName)return;
   showSpinner();
-  try { await SardAPI.updateHalaqa(id, name); await loadAll(); hideSpinner(); showSaveSuccess('تم التعديل'); }
-  catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+  try{await SardAPI.updateHalaqa(id,name);await loadAll();hideSpinner();showSaveSuccess('تم التعديل');}
+  catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }
 
-async function deleteHalaqa(id, name) {
-  const r = await Swal.fire({ icon:'warning', title:'حذف الحلقة', html:`سيتم حذف <b>${escapeHtml(name)}</b>. الطلاب المرتبطون لن يُحذفوا.`, showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b' });
-  if (!r.isConfirmed) return;
+async function deleteHalaqa(id,name) {
+  const cnt=S.students.filter(s=>s.halaqa_id===id).length;
+  const r=await Swal.fire({icon:'warning',title:'حذف الحلقة',html:`سيتم حذف <b>${escapeHtml(name)}</b>${cnt?`<br><small style="color:var(--warning);">⚠ ${cnt} طالب مرتبط — لن يُحذفوا لكن سيُفصلون عن الحلقة</small>`:''}`,showCancelButton:true,confirmButtonText:'حذف',cancelButtonText:'إلغاء',confirmButtonColor:'#c0392b'});
+  if(!r.isConfirmed)return;
   showSpinner();
-  try { await SardAPI.deleteHalaqa(id); await loadAll(); hideSpinner(); showToast('تم الحذف','success'); }
-  catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+  try{await SardAPI.deleteHalaqa(id);await loadAll();hideSpinner();showToast('تم الحذف','success');}
+  catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }
 
-// =============================================
+// ═══════════════════════════════════════
 // STUDENTS
-// =============================================
-function renderStudentsList() {
-  const halaqaF = document.getElementById('halaqaFilter')?.value||'';
-  const q = (document.getElementById('studentSearch')?.value||'').toLowerCase();
-  let list = S.students.filter(s => {
-    if (halaqaF && s.halaqa_id !== halaqaF) return false;
-    if (q && !(s.name||'').toLowerCase().includes(q) && !(s.sid||'').includes(q)) return false;
+// ═══════════════════════════════════════
+function renderStudents() {
+  const hf=document.getElementById('halaqaFilter')?.value||'';
+  const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();
+  let list=S.students.filter(s=>{
+    if(hf&&s.halaqa_id!==hf)return false;
+    if(q&&!(s.name||'').toLowerCase().includes(q)&&!(s.sid||'').includes(q))return false;
     return true;
   });
-  const tbody = document.getElementById('studentsList');
-  if (!list.length) { tbody.innerHTML='<tr><td colspan="7" class="text-muted text-center" style="padding:20px;">لا يوجد طلاب</td></tr>'; return; }
-  tbody.innerHTML = list.map(s => `
+  document.getElementById('studentCountBadge').textContent=list.length+' طالب';
+  const tbody=document.getElementById('studentsList');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="7" class="text-muted text-center" style="padding:24px;">لا يوجد طلاب</td></tr>';return;}
+  tbody.innerHTML=list.map(s=>`
     <tr>
       <td class="fw-bold">${escapeHtml(s.name||'')}</td>
-      <td class="text-muted">${escapeHtml(s.sid||'—')}</td>
+      <td class="text-muted" style="font-size:.82rem;">${escapeHtml(s.sid||'—')}</td>
       <td>${escapeHtml(s.halaqa||'—')}</td>
       <td>${s.track?`<span class="badge-sard badge-gold">${escapeHtml(s.track)}</span>`:'—'}</td>
-      <td>${escapeHtml(String(s.parts_count||0))}</td>
-      <td>${s.guardian_phone?`<a href="https://wa.me/${String(s.guardian_phone).replace(/\D/g,'')}" target="_blank" style="color:var(--primary);text-decoration:none;"><i class="fab fa-whatsapp" style="color:#25D366;"></i> ${escapeHtml(s.guardian_phone)}</a>`:'—'}</td>
+      <td style="text-align:center;">${s.parts_count||0}</td>
+      <td>${s.guardian_phone?`<a href="https://wa.me/${String(s.guardian_phone).replace(/\D/g,'')}" target="_blank" style="color:#25D366;text-decoration:none;"><i class="fab fa-whatsapp"></i> ${escapeHtml(s.guardian_phone)}</a>`:'—'}</td>
       <td>
         <div class="d-flex gap-1">
-          <button class="btn-outline-sard" style="padding:4px 10px;font-size:.78rem;" onclick="openEditStudent('${s.id}')"><i class="fas fa-edit"></i></button>
-          <button class="btn-danger-sard" style="padding:4px 10px;font-size:.78rem;" onclick="deleteStudent('${s.id}','${jsString(s.name||'')}')"><i class="fas fa-trash"></i></button>
+          <button class="btn-outline-sard" style="padding:4px 9px;font-size:.78rem;" onclick="openEditStudent('${s.id}')"><i class="fas fa-edit"></i></button>
+          <button class="btn-danger-sard" style="padding:4px 9px;font-size:.78rem;" onclick="deleteStudent('${s.id}','${jsString(s.name||'')}')"><i class="fas fa-trash"></i></button>
         </div>
       </td>
     </tr>`).join('');
 }
 
+function halaqaOpts(selected){
+  return '<option value="">— بدون حلقة —</option>'+S.halaqas.map(h=>`<option value="${h.id}" ${h.id===selected?'selected':''}>${escapeHtml(h.name)}</option>`).join('');
+}
+
 async function openAddStudent() {
-  const halaqaOptions = S.halaqas.map(h=>`<option value="${h.id}">${escapeHtml(h.name)}</option>`).join('');
-  const { value, isConfirmed } = await Swal.fire({
-    title: 'إضافة طالب',
-    html: `
-      <div style="text-align:right;font-family:Tajawal,sans-serif;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-          <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الاسم *</label><input id="sName" class="swal2-input" style="margin:0;width:100%;" placeholder="اسم الطالب"/></div>
-          <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الهوية</label><input id="sSid" class="swal2-input" style="margin:0;width:100%;" placeholder="رقم الهوية"/></div>
-          <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الحلقة</label><select id="sHalaqa" class="swal2-input" style="margin:0;width:100%;"><option value="">—</option>${halaqaOptions}</select></div>
-          <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">المسار</label><input id="sTrack" class="swal2-input" style="margin:0;width:100%;" placeholder="المسار"/></div>
-          <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الأجزاء المحفوظة</label><input id="sParts" type="number" class="swal2-input" style="margin:0;width:100%;" placeholder="0" min="0" max="30"/></div>
-          <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">جوال ولي الأمر</label><input id="sGuardian" class="swal2-input" style="margin:0;width:100%;" placeholder="05xxxxxxxx"/></div>
-        </div>
-      </div>`,
-    confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', showCancelButton: true, confirmButtonColor: '#014979',
-    preConfirm: () => ({
-      name: document.getElementById('sName').value.trim(),
-      sid: document.getElementById('sSid').value.trim(),
-      halaqa_id: document.getElementById('sHalaqa').value,
-      track: document.getElementById('sTrack').value.trim(),
-      parts_count: Number(document.getElementById('sParts').value)||0,
-      guardian_phone: document.getElementById('sGuardian').value.trim()
-    })
+  const{value,isConfirmed}=await Swal.fire({
+    title:'إضافة طالب جديد',
+    html:`<div style="text-align:right;font-family:Tajawal,sans-serif;direction:rtl;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الاسم *</label><input id="sName" class="swal2-input" style="margin:0;width:100%;"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الهوية</label><input id="sSid" class="swal2-input" style="margin:0;width:100%;"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الحلقة</label><select id="sHalaqa" class="swal2-input" style="margin:0;width:100%;">${halaqaOpts('')}</select></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">المسار</label><input id="sTrack" class="swal2-input" style="margin:0;width:100%;"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">عدد الأجزاء المحفوظة</label><input id="sParts" type="number" class="swal2-input" style="margin:0;width:100%;" min="0" max="30" value="0"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">جوال ولي الأمر</label><input id="sGuardian" class="swal2-input" style="margin:0;width:100%;" placeholder="05xxxxxxxx"/></div>
+        <div style="grid-column:1/-1;"><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">جوال الطالب</label><input id="sPhone" class="swal2-input" style="margin:0;width:100%;" placeholder="05xxxxxxxx"/></div>
+      </div>
+    </div>`,
+    confirmButtonText:'إضافة',cancelButtonText:'إلغاء',showCancelButton:true,confirmButtonColor:'#014979',
+    preConfirm:()=>{
+      const name=document.getElementById('sName').value.trim();
+      if(!name){Swal.showValidationMessage('اسم الطالب مطلوب');return false;}
+      return{name,sid:document.getElementById('sSid').value.trim(),halaqa_id:document.getElementById('sHalaqa').value,track:document.getElementById('sTrack').value.trim(),parts_count:Number(document.getElementById('sParts').value)||0,guardian_phone:document.getElementById('sGuardian').value.trim(),student_phone:document.getElementById('sPhone').value.trim()};
+    }
   });
-  if (!isConfirmed || !value?.name) return;
+  if(!isConfirmed||!value)return;
   showSpinner();
-  try {
-    await SardAPI.createStudent(S.complexId, value.halaqa_id||null, { sid:value.sid, name:value.name, track:value.track, parts_count:value.parts_count, guardian_phone:value.guardian_phone });
-    await loadAll(); hideSpinner(); showSaveSuccess('تمت إضافة الطالب');
-  } catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+  try{await SardAPI.createStudent(S.complexId,value.halaqa_id||null,value);await loadAll();hideSpinner();showSaveSuccess('تمت إضافة الطالب');}
+  catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }
 
 async function openEditStudent(id) {
-  const s = S.students.find(st=>st.id===id); if(!s) return;
-  const halaqaOptions = S.halaqas.map(h=>`<option value="${h.id}" ${s.halaqa_id===h.id?'selected':''}>${escapeHtml(h.name)}</option>`).join('');
-  const { value, isConfirmed } = await Swal.fire({
-    title: 'تعديل بيانات الطالب',
-    html: `<div style="text-align:right;font-family:Tajawal,sans-serif;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الاسم *</label><input id="sName" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.name||'')}"/></div>
-      <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الهوية</label><input id="sSid" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.sid||'')}"/></div>
-      <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الحلقة</label><select id="sHalaqa" class="swal2-input" style="margin:0;width:100%;"><option value="">—</option>${halaqaOptions}</select></div>
-      <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">المسار</label><input id="sTrack" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.track||'')}"/></div>
-      <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الأجزاء المحفوظة</label><input id="sParts" type="number" class="swal2-input" style="margin:0;width:100%;" value="${s.parts_count||0}" min="0" max="30"/></div>
-      <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">جوال ولي الأمر</label><input id="sGuardian" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.guardian_phone||'')}"/></div>
-    </div></div>`,
-    confirmButtonText:'حفظ', cancelButtonText:'إلغاء', showCancelButton:true, confirmButtonColor:'#014979',
-    preConfirm: () => ({ name:document.getElementById('sName').value.trim(), sid:document.getElementById('sSid').value.trim(), halaqa_id:document.getElementById('sHalaqa').value, track:document.getElementById('sTrack').value.trim(), parts_count:Number(document.getElementById('sParts').value)||0, guardian_phone:document.getElementById('sGuardian').value.trim() })
-  });
-  if (!isConfirmed || !value?.name) return;
-  showSpinner();
-  try { await SardAPI.updateStudent(id, value); await loadAll(); hideSpinner(); showSaveSuccess('تم التعديل'); }
-  catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
-}
-
-async function deleteStudent(id, name) {
-  const r = await Swal.fire({
-    icon:'warning', title:'حذف الطالب',
-    html:`سيتم حذف <b>${escapeHtml(name)}</b> وجميع سجلاته نهائياً.`,
-    showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b',
-    input:'text', inputPlaceholder:'اكتب "حذف" للتأكيد',
-    preConfirm: v => { if(v!=='حذف') Swal.showValidationMessage('اكتب كلمة "حذف" للتأكيد'); return v; }
-  });
-  if (!r.isConfirmed) return;
-  showSpinner();
-  try { await SardAPI.deleteStudent(id); await loadAll(); hideSpinner(); showToast('تم الحذف','success'); }
-  catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
-}
-
-async function openImportStudents() {
-  const { value: csvText, isConfirmed } = await Swal.fire({
-    title: 'استيراد من Google Sheets',
-    html: `
-      <p style="font-family:Tajawal,sans-serif;font-size:.85rem;text-align:right;margin-bottom:8px;">
-        الصق الصفوف مباشرة من Google Sheets (Tab-separated):<br>
-        <small style="color:#64748b;line-height:1.8;">
-          <b>ترتيب الأعمدة:</b><br>
-          هوية الطالب | اسم الطالب | المسار | الحلقة | جوال ولي الأمر | جوال الطالب | عدد الأجزاء المحفوظة
-        </small>
-      </p>
-      <textarea id="csvInput" class="swal2-textarea" style="width:100%;height:150px;font-family:monospace;font-size:.78rem;direction:ltr;" placeholder="الصق البيانات هنا..."></textarea>`,
-    confirmButtonText: 'معاينة وتأكيد', cancelButtonText: 'إلغاء',
-    showCancelButton: true, confirmButtonColor: '#014979',
-    preConfirm: () => {
-      const v = document.getElementById('csvInput').value.trim();
-      if (!v) { Swal.showValidationMessage('الصق البيانات أولاً'); return false; }
-      return v;
+  const s=S.students.find(st=>st.id===id);if(!s)return;
+  const{value,isConfirmed}=await Swal.fire({
+    title:'تعديل بيانات الطالب',
+    html:`<div style="text-align:right;font-family:Tajawal,sans-serif;direction:rtl;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الاسم *</label><input id="sName" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.name||'')}"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الهوية</label><input id="sSid" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.sid||'')}"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">الحلقة</label><select id="sHalaqa" class="swal2-input" style="margin:0;width:100%;">${halaqaOpts(s.halaqa_id||'')}</select></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">المسار</label><input id="sTrack" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.track||'')}"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">عدد الأجزاء المحفوظة</label><input id="sParts" type="number" class="swal2-input" style="margin:0;width:100%;" value="${s.parts_count||0}" min="0" max="30"/></div>
+        <div><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">جوال ولي الأمر</label><input id="sGuardian" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.guardian_phone||'')}"/></div>
+        <div style="grid-column:1/-1;"><label style="font-size:.82rem;font-weight:700;display:block;margin-bottom:4px;">جوال الطالب</label><input id="sPhone" class="swal2-input" style="margin:0;width:100%;" value="${escapeAttr(s.student_phone||'')}"/></div>
+      </div>
+    </div>`,
+    confirmButtonText:'حفظ',cancelButtonText:'إلغاء',showCancelButton:true,confirmButtonColor:'#014979',
+    preConfirm:()=>{
+      const name=document.getElementById('sName').value.trim();
+      if(!name){Swal.showValidationMessage('اسم الطالب مطلوب');return false;}
+      return{name,sid:document.getElementById('sSid').value.trim(),halaqa_id:document.getElementById('sHalaqa').value||null,track:document.getElementById('sTrack').value.trim(),parts_count:Number(document.getElementById('sParts').value)||0,guardian_phone:document.getElementById('sGuardian').value.trim(),student_phone:document.getElementById('sPhone').value.trim()};
     }
   });
-  if (!isConfirmed || !csvText) return;
+  if(!isConfirmed||!value)return;
+  showSpinner();
+  try{await SardAPI.updateStudent(id,value);await loadAll();hideSpinner();showSaveSuccess('تم التعديل');}
+  catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
+}
 
-  // تحليل البيانات
-  const rows = csvText.split('\n').filter(l => l.trim());
-  const parsed = rows.map(row => {
-    // دعم Tab و comma
-    const sep = row.includes('\t') ? '\t' : ',';
-    const cols = row.split(sep).map(c => c.trim().replace(/^"|"$/g,''));
-    return {
-      sid:            cols[0] || '',
-      name:           cols[1] || '',
-      track:          cols[2] || '',
-      halaqa_name:    cols[3] || '',
-      guardian_phone: cols[4] || '',
-      student_phone:  cols[5] || '',
-      parts_count:    Number(cols[6]) || 0
-    };
-  }).filter(r => r.name);
+async function deleteStudent(id,name) {
+  const r=await Swal.fire({icon:'warning',title:'حذف الطالب',html:`سيتم حذف <b>${escapeHtml(name)}</b> وجميع سجلاته نهائياً.`,showCancelButton:true,confirmButtonText:'حذف',cancelButtonText:'إلغاء',confirmButtonColor:'#c0392b',input:'text',inputPlaceholder:'اكتب "حذف" للتأكيد',preConfirm:v=>{if(v!=='حذف'){Swal.showValidationMessage('اكتب كلمة "حذف"');return false;}return v;}});
+  if(!r.isConfirmed)return;
+  showSpinner();
+  try{await SardAPI.deleteStudent(id);await loadAll();hideSpinner();showToast('تم الحذف','success');}
+  catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
+}
 
-  if (!parsed.length) { showToast('لم يتم تحليل أي بيانات صالحة','warning'); return; }
+// ─── استيراد لصق بيانات ───
+async function openImportPaste() {
+  const{value:csvText,isConfirmed}=await Swal.fire({
+    title:'استيراد بيانات الطلاب',
+    html:`<div style="text-align:right;font-family:Tajawal,sans-serif;">
+      <div class="sheets-tip" style="background:#e8f2fb;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#014979;line-height:1.8;margin-bottom:12px;">
+        <b>ترتيب الأعمدة:</b><br>
+        هوية الطالب &nbsp;|&nbsp; اسم الطالب &nbsp;|&nbsp; المسار &nbsp;|&nbsp; الحلقة &nbsp;|&nbsp; جوال ولي الأمر &nbsp;|&nbsp; جوال الطالب &nbsp;|&nbsp; عدد الأجزاء<br>
+        <small>انسخ مباشرة من Google Sheets (Tab-separated)</small>
+      </div>
+      <textarea id="csvInput" class="swal2-textarea" style="width:100%;height:140px;font-family:monospace;font-size:.78rem;direction:ltr;" placeholder="الصق البيانات هنا..."></textarea>
+    </div>`,
+    confirmButtonText:'معاينة',cancelButtonText:'إلغاء',showCancelButton:true,confirmButtonColor:'#014979',
+    preConfirm:()=>{const v=document.getElementById('csvInput').value.trim();if(!v){Swal.showValidationMessage('الصق البيانات أولاً');return false;}return v;}
+  });
+  if(!isConfirmed||!csvText)return;
+  await _processImport(csvText);
+}
 
-  // معاينة
-  const preview = parsed.slice(0,3).map(r =>
-    `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.halaqa_name||'—')}</td><td>${escapeHtml(r.track||'—')}</td><td>${r.parts_count}</td></tr>`
-  ).join('');
+// ─── استيراد من رابط Google Sheets ───
+async function openImportSheets() {
+  const{value:url,isConfirmed}=await Swal.fire({
+    title:'استيراد من Google Sheets',
+    html:`<div style="text-align:right;font-family:Tajawal,sans-serif;">
+      <p style="font-size:.85rem;margin-bottom:10px;">أدخل رابط Google Sheets (يجب أن يكون مشاركاً للعموم)</p>
+      <input id="sheetsUrl" class="swal2-input" style="direction:ltr;font-size:.8rem;" placeholder="https://docs.google.com/spreadsheets/d/..."/>
+      <div style="background:#fef3c7;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#92400e;margin-top:12px;line-height:1.7;">
+        <b>⚠ مطلوب:</b><br>
+        ١. اذهب للـ Sheet → مشاركة → "أي شخص لديه الرابط"<br>
+        ٢. <b>ترتيب الأعمدة:</b> هوية | اسم | مسار | حلقة | جوال ولي الأمر | جوال الطالب | الأجزاء<br>
+        ٣. بدون سطر رأس (أو أزله)
+      </div>
+    </div>`,
+    confirmButtonText:'جلب البيانات',cancelButtonText:'إلغاء',showCancelButton:true,confirmButtonColor:'#014979',
+    preConfirm:()=>{const v=document.getElementById('sheetsUrl').value.trim();if(!v||!v.includes('spreadsheets')){Swal.showValidationMessage('أدخل رابط Google Sheets صحيح');return false;}return v;}
+  });
+  if(!isConfirmed||!url)return;
 
-  const r2 = await Swal.fire({
-    icon: 'info',
-    title: `استيراد ${parsed.length} طالب`,
-    html: `
-      <p style="font-family:Tajawal,sans-serif;font-size:.85rem;margin-bottom:10px;">معاينة أول 3 صفوف:</p>
-      <table style="width:100%;border-collapse:collapse;font-family:Tajawal,sans-serif;font-size:.8rem;direction:rtl;">
+  // استخراج ID من الرابط وتحويله لـ CSV
+  const match=url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(!match){showToast('رابط غير صحيح','error');return;}
+  const sheetId=match[1];
+
+  // استخراج gid إن وجد
+  const gidMatch=url.match(/[?&]gid=(\d+)/)||url.match(/#gid=(\d+)/);
+  const gid=gidMatch?gidMatch[1]:'0';
+
+  const csvUrl=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+
+  showSpinner('جارٍ جلب البيانات من Sheets...');
+  try{
+    const res=await fetch(csvUrl);
+    if(!res.ok)throw new Error('تعذر جلب البيانات، تأكد من المشاركة العامة');
+    const text=await res.text();
+    hideSpinner();
+
+    if(!text.trim())throw new Error('الملف فارغ');
+    await _processImport(text,true);
+  }catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
+}
+
+// ─── معالجة الاستيراد المشترك ───
+async function _processImport(text, isCSV=false) {
+  const rows=text.split('\n').filter(l=>l.trim());
+  const parsed=rows.map(row=>{
+    const sep=isCSV?',':( row.includes('\t')?'\t':',');
+    const cols=row.split(sep).map(c=>c.trim().replace(/^"|"$/g,'').replace(/""/g,'"'));
+    // تجاهل سطر الرأس
+    if(cols[0]==='هوية الطالب'||cols[0]==='الهوية'||cols[1]==='اسم الطالب'||cols[1]==='الاسم')return null;
+    return{sid:cols[0]||'',name:cols[1]||'',track:cols[2]||'',halaqa_name:cols[3]||'',guardian_phone:cols[4]||'',student_phone:cols[5]||'',parts_count:Number(cols[6])||0};
+  }).filter(r=>r&&r.name);
+
+  if(!parsed.length){showToast('لم يتم تحليل أي بيانات صالحة','warning');return;}
+
+  // معاينة + تحذير حلقات غير موجودة
+  const missingHalaqas=[...new Set(parsed.map(r=>r.halaqa_name).filter(h=>h&&!S.halaqas.find(hq=>hq.name===h)))];
+  const preview=parsed.slice(0,3).map(r=>`<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.halaqa_name||'—')}</td><td>${escapeHtml(r.track||'—')}</td><td>${r.parts_count}</td></tr>`).join('');
+
+  const r2=await Swal.fire({
+    icon:'info',
+    title:`استيراد ${parsed.length} طالب`,
+    html:`<div style="font-family:Tajawal,sans-serif;direction:rtl;">
+      <p style="font-size:.85rem;margin-bottom:10px;">معاينة أول 3 صفوف:</p>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem;">
         <thead><tr style="background:#e8f2fb;"><th style="padding:6px;">الاسم</th><th>الحلقة</th><th>المسار</th><th>الأجزاء</th></tr></thead>
         <tbody>${preview}</tbody>
       </table>
-      <p style="font-family:Tajawal,sans-serif;font-size:.78rem;color:#64748b;margin-top:8px;">
-        ملاحظة: الطلاب الجدد سيُضافون. الحلقات يجب أن تكون موجودة مسبقاً في النظام.
-      </p>`,
-    showCancelButton: true, confirmButtonText: 'استيراد الآن', cancelButtonText: 'إلغاء', confirmButtonColor: '#014979'
+      ${missingHalaqas.length?`<div style="background:#fef3c7;border-radius:8px;padding:10px;margin-top:10px;font-size:.8rem;color:#92400e;"><b>⚠ حلقات غير موجودة ستُنشأ تلقائياً:</b><br>${missingHalaqas.map(h=>`<span style="background:#fff;padding:2px 8px;border-radius:10px;margin:2px;display:inline-block;">${escapeHtml(h)}</span>`).join('')}</div>`:''}
+    </div>`,
+    showCancelButton:true,confirmButtonText:'استيراد الآن',cancelButtonText:'إلغاء',confirmButtonColor:'#014979'
   });
-  if (!r2.isConfirmed) return;
+  if(!r2.isConfirmed)return;
 
   showSpinner('جارٍ الاستيراد...');
-  try {
-    const count = await SardAPI.upsertStudentsBulk(S.complexId, parsed, S.halaqas);
+  try{
+    // إنشاء الحلقات المفقودة تلقائياً
+    for(const hName of missingHalaqas){
+      const newH=await SardAPI.createHalaqa(S.complexId,hName);
+      S.halaqas.push(newH);
+    }
+    const count=await SardAPI.upsertStudentsBulk(S.complexId,parsed,S.halaqas);
     await loadAll();
     hideSpinner();
     showSaveSuccess(`تم استيراد ${count} طالب بنجاح ✓`);
-  } catch(e) {
-    hideSpinner();
-    showToast('خطأ في الاستيراد: ' + (e.message||e), 'error');
-  }
+  }catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }
 
-// =============================================
-// REPORTS — حضور
-// =============================================
+// ═══════════════════════════════════════
+// ATTENDANCE
+// ═══════════════════════════════════════
+function loadAttHalaqaFilter() {
+  const sel=document.getElementById('attHalaqaFilter');
+  if(!sel)return;
+  sel.innerHTML='<option value="">كل الحلقات</option>'+S.halaqas.map(h=>`<option value="${h.id}">${escapeHtml(h.name)}</option>`).join('');
+}
+
 async function loadAttReport() {
-  const from = document.getElementById('attFrom').value;
-  const to   = document.getElementById('attTo').value;
-  if (!from || !to) { showToast('حدد الفترة الزمنية','warning'); return; }
+  const from=document.getElementById('attFrom').value;
+  const to=document.getElementById('attTo').value;
+  if(!from||!to){showToast('حدد الفترة الزمنية','warning');return;}
+  const halaqaF=document.getElementById('attHalaqaFilter')?.value||'';
   showSpinner();
-  try {
-    const data = await SardAPI.getAttendanceReport(S.complexId, from, to);
-    const el = document.getElementById('attReportResult');
-    if (!data.length) { el.innerHTML='<p class="text-muted text-center" style="padding:20px;">لا توجد بيانات للفترة المحددة</p>'; hideSpinner(); return; }
-
-    // إحصاء
-    const counts = { present:0, late:0, excused:0, absent:0 };
-    data.forEach(d => counts[d.status]=(counts[d.status]||0)+1);
-    const total = data.length;
-
-    el.innerHTML = `
-      <div class="d-flex gap-2 flex-wrap" style="margin-bottom:12px;">
-        <span class="badge-sard badge-pass"><i class="fas fa-check"></i> حضور: ${counts.present}</span>
-        <span class="badge-sard badge-warn">متأخر: ${counts.late}</span>
-        <span class="badge-sard badge-info">معتذر: ${counts.excused}</span>
-        <span class="badge-sard badge-fail">غياب: ${counts.absent}</span>
-      </div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>الطالب</th><th>الحلقة</th><th>التاريخ</th><th>الحالة</th></tr></thead>
-        <tbody>${data.slice(0,50).map(d=>`<tr><td class="fw-bold">${escapeHtml(d.students?.name||'—')}</td><td>${escapeHtml(d.students?.halaqas?.name||'—')}</td><td>${d.date}</td><td><span class="att-status-btn s-${d.status}" style="cursor:default;">${{present:'حاضر',late:'متأخر',excused:'معتذر',absent:'غائب'}[d.status]||d.status}</span></td></tr>`).join('')}</tbody>
-      </table></div>
-      ${data.length>50?`<p class="text-muted text-center" style="font-size:.8rem;margin-top:8px;">يُعرض أول 50 سجل من أصل ${total}</p>`:''}`;
+  try{
+    let data=await SardAPI.getAttendanceReport(S.complexId,from,to);
+    if(halaqaF)data=data.filter(d=>d.halaqa_id===halaqaF);
+    S.attData=data;
     hideSpinner();
-  } catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+    renderAttReport(data);
+  }catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }
 
-// =============================================
-// SETTINGS TAB
-// =============================================
-function loadSettingsTab() {
-  const s = S.settings;
-  const el = document.getElementById('regMode');
-  if (el) el.value = s.registration_mode || 'auto';
-  const tpl = document.getElementById('approvalTemplate');
-  if (tpl) tpl.value = s.approval_whatsapp_template || '';
+function renderAttReport(data) {
+  const statsEl=document.getElementById('attStats');
+  const resultEl=document.getElementById('attResult');
+  if(!data.length){statsEl.style.display='none';resultEl.innerHTML='<div class="empty-state"><i class="fas fa-calendar"></i><p>لا توجد بيانات للفترة المحددة</p></div>';return;}
+
+  const cnt={present:0,late:0,excused:0,absent:0};
+  data.forEach(d=>cnt[d.status]=(cnt[d.status]||0)+1);
+  const total=data.length;
+
+  statsEl.style.display='flex';
+  statsEl.style.gap='8px';
+  statsEl.style.flexWrap='wrap';
+  statsEl.innerHTML=`
+    <span class="badge-sard badge-pass"><i class="fas fa-check"></i> حاضر: ${cnt.present}</span>
+    <span class="badge-sard badge-warn">متأخر: ${cnt.late}</span>
+    <span class="badge-sard badge-info">معتذر: ${cnt.excused}</span>
+    <span class="badge-sard badge-fail">غائب: ${cnt.absent}</span>
+    <span class="badge-sard badge-prim">الإجمالي: ${total}</span>`;
+
+  resultEl.innerHTML=`<div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>الطالب</th><th>الحلقة</th><th>التاريخ</th><th>الحالة</th></tr></thead>
+    <tbody>${data.slice(0,100).map(d=>`
+      <tr>
+        <td class="fw-bold">${escapeHtml(d.students?.name||'—')}</td>
+        <td class="text-muted">${escapeHtml(d.students?.halaqas?.name||'—')}</td>
+        <td style="direction:ltr;text-align:right;">${d.date}</td>
+        <td><span class="att-status-btn s-${d.status}" style="cursor:default;">${{present:'حاضر',late:'متأخر',excused:'معتذر',absent:'غائب'}[d.status]||d.status}</span></td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>
+  ${data.length>100?`<p class="text-muted text-center" style="font-size:.8rem;margin-top:8px;">يُعرض أول 100 سجل من أصل ${data.length}</p>`:''}`;
 }
 
-async function saveRegistrationMode() {
-  const mode = document.getElementById('regMode').value;
-  await SardAPI.saveSettings(S.complexId, { registration_mode: mode });
-  S.settings.registration_mode = mode;
+function exportAttCSV() {
+  if(!S.attData||!S.attData.length){showToast('لا توجد بيانات للتصدير','warning');return;}
+  const statusMap={present:'حاضر',late:'متأخر',excused:'معتذر',absent:'غائب'};
+  const rows=[['الطالب','الحلقة','التاريخ','الحالة'],...S.attData.map(d=>[d.students?.name||'—',d.students?.halaqas?.name||'—',d.date,statusMap[d.status]||d.status])];
+  const BOM='\uFEFF';
+  const csv=BOM+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='تقرير_الحضور.csv';a.click();
+}
+
+// ═══════════════════════════════════════
+// RECITER SETTINGS
+// ═══════════════════════════════════════
+function loadSettingsForm() {
+  const s=S.settings;
+  if(!s)return;
+  // إعدادات التسميع
+  setValue('s-partsDivisions', s.parts_divisions??2);
+  setValue('s-mistakeDeduction', s.mistake_deduction??0.5);
+  setValue('s-warningDeduction', s.warning_deduction??0.25);
+  setValue('s-passingScore', s.passing_score??7);
+  setCheck('s-showTrack', s.show_track_in_selection??false);
+  setCheck('s-hideHalaqas', s.hide_halaqas_use_tracks??false);
+  setCheck('s-requireFail', s.require_fail_reason??false);
+  setCheck('s-lockFullFile', s.lock_full_file??false);
+  setCheck('s-showReports', s.show_reports_button??false);
+  setCheck('s-showDeleteSection', s.show_delete_section??false);
+  setValue('s-lockCode','');
+  setValue('s-editCode','');
+  setValue('s-whatsapp', s.whatsapp_template||'');
+  // المسارات
+  renderTrackConfigs();
+  renderActiveTrackSelect(s.active_track||'');
+  // إعدادات المجمع
+  setValue('regMode', s.registration_mode||'auto');
+  setValue('approvalTemplate', s.approval_whatsapp_template||'');
+}
+
+function setValue(id,v){const el=document.getElementById(id);if(el)el.value=v;}
+function setCheck(id,v){const el=document.getElementById(id);if(el)el.checked=!!v;}
+function getValue(id){const el=document.getElementById(id);return el?el.value:'';}
+function getCheck(id){const el=document.getElementById(id);return el?el.checked:false;}
+
+function renderActiveTrackSelect(selected){
+  const names={};(S.students||[]).forEach(s=>{if(s.track)names[s.track]=true;});if(selected)names[selected]=true;
+  const el=document.getElementById('s-activeTrack');if(!el)return;
+  el.innerHTML='<option value="">بدون مسار نشط</option>'+Object.keys(names).sort((a,b)=>a.localeCompare(b,'ar')).map(n=>`<option value="${escapeAttr(n)}" ${n===selected?'selected':''}>${escapeHtml(n)}</option>`).join('');
+}
+
+function renderTrackConfigs(){
+  const list=document.getElementById('trackConfigsList');if(!list)return;
+  list.innerHTML='';
+  if(!S.trackConfigs.length){list.innerHTML='<p class="text-muted" style="font-size:.85rem;padding:8px 0;">لا توجد مسارات خاصة</p>';return;}
+  S.trackConfigs.forEach((tc,idx)=>{
+    const d=document.createElement('div');d.className='card-sard animate-in';d.style.marginBottom='10px';
+    d.innerHTML=`<div class="d-flex justify-between align-center" style="margin-bottom:10px;">
+      <span class="fw-bold" style="color:var(--primary);">${escapeHtml(tc.name||'مسار جديد')}</span>
+      <button class="btn-danger-sard" style="padding:4px 10px;font-size:.8rem;" onclick="removeTC(${idx})"><i class="fas fa-trash"></i></button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <div><label class="text-muted" style="font-size:.8rem;">اسم المسار</label>
+        <select class="form-control" onchange="updateTC(${idx},'name',this.value)">
+          ${Object.keys(Object.fromEntries((S.students||[]).filter(s=>s.track).map(s=>[s.track,1]))).sort().map(n=>`<option value="${escapeAttr(n)}" ${n===tc.name?'selected':''}>${escapeHtml(n)}</option>`).join('')}
+        </select></div>
+      <div><label class="text-muted" style="font-size:.8rem;">تقسيم الجزء</label>
+        <select class="form-control" onchange="updateTC(${idx},'parts_divisions',+this.value)">
+          <option value="1" ${tc.parts_divisions==1?'selected':''}>1</option>
+          <option value="2" ${tc.parts_divisions==2?'selected':''}>2</option>
+          <option value="4" ${tc.parts_divisions==4?'selected':''}>4</option>
+        </select></div>
+      <div><label class="text-muted" style="font-size:.8rem;">درجة النجاح</label>
+        <input type="number" class="form-control" step="0.5" value="${tc.passing_score??7}" onchange="updateTC(${idx},'passing_score',+this.value)"/></div>
+      <div><label class="text-muted" style="font-size:.8rem;">خصم الخطأ</label>
+        <input type="number" class="form-control" step="0.25" value="${tc.mistake_deduction??0.5}" onchange="updateTC(${idx},'mistake_deduction',+this.value)"/></div>
+      <div><label class="text-muted" style="font-size:.8rem;">خصم التنبيه</label>
+        <input type="number" class="form-control" step="0.25" value="${tc.warning_deduction??0.25}" onchange="updateTC(${idx},'warning_deduction',+this.value)"/></div>
+    </div>`;
+    list.appendChild(d);
+  });
+}
+function updateTC(idx,field,val){S.trackConfigs[idx][field]=val;}
+function addTrackConfig(){S.trackConfigs.push({name:'',parts_divisions:2,mistake_deduction:0.5,warning_deduction:0.25,passing_score:7});renderTrackConfigs();}
+function removeTC(idx){S.trackConfigs.splice(idx,1);renderTrackConfigs();}
+
+async function doSaveReciterSettings() {
+  const fields={
+    parts_divisions:    Number(getValue('s-partsDivisions')),
+    mistake_deduction:  Number(getValue('s-mistakeDeduction')),
+    warning_deduction:  Number(getValue('s-warningDeduction')),
+    passing_score:      Number(getValue('s-passingScore')),
+    show_track_in_selection:    getCheck('s-showTrack'),
+    hide_halaqas_use_tracks:    getCheck('s-hideHalaqas'),
+    require_fail_reason:        getCheck('s-requireFail'),
+    lock_full_file:             getCheck('s-lockFullFile'),
+    show_reports_button:        getCheck('s-showReports'),
+    show_delete_section:        getCheck('s-showDeleteSection'),
+    whatsapp_template:          getValue('s-whatsapp').trim(),
+    active_track:               getValue('s-activeTrack').trim()
+  };
+  const lc=getValue('s-lockCode').trim();
+  if(lc)fields.settings_lock_code=lc;
+  const ec=getValue('s-editCode').trim();
+  if(ec)fields.edit_sections_code=ec;
+
+  const btn=document.getElementById('saveReciterBtn');
+  btnLoading(btn,'جارٍ الحفظ...');
+  try{
+    await SardAPI.saveSettings(S.complexId,fields);
+    await SardAPI.saveTrackConfigs(S.complexId,S.trackConfigs);
+    Object.assign(S.settings,fields);
+    btnReset(btn);
+    showSaveSuccess('تم حفظ إعدادات التسميع ✓');
+  }catch(e){btnReset(btn);showToast('خطأ: '+e.message,'error');}
+}
+
+async function saveRegMode() {
+  const mode=getValue('regMode');
+  await SardAPI.saveSettings(S.complexId,{registration_mode:mode});
+  S.settings.registration_mode=mode;
   showSaveSuccess('تم الحفظ');
 }
 
 async function saveApprovalTemplate() {
-  const tpl = document.getElementById('approvalTemplate').value.trim();
-  await SardAPI.saveSettings(S.complexId, { approval_whatsapp_template: tpl });
-  S.settings.approval_whatsapp_template = tpl;
+  const tpl=getValue('approvalTemplate').trim();
+  await SardAPI.saveSettings(S.complexId,{approval_whatsapp_template:tpl});
+  S.settings.approval_whatsapp_template=tpl;
   showSaveSuccess('تم حفظ القالب');
 }
 
-function copyLink() {
-  const val = document.getElementById('complexLink').value;
-  navigator.clipboard.writeText(val).then(()=>showToast('تم النسخ!','success')).catch(()=>showToast('يرجى النسخ يدوياً','warning'));
+function copyLink(){
+  const val=document.getElementById('complexLink').value;
+  navigator.clipboard.writeText(val).then(()=>showToast('تم النسخ','success')).catch(()=>showToast('انسخ يدوياً','warning'));
 }
 </script>
 </body>
