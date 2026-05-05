@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تقرير المجمع والحلق</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="../css/reports.css"/>
+</head>
+<body>
+<nav class="navbar-sard">
+  <div class="navbar-brand"><i class="fas fa-quran"></i><span id="navTitle">تقرير المجمع والحلق</span></div>
+  <div class="d-flex align-center gap-2">
+    <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
+    <a href="../index.html" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+</nav>
+<div class="page-wrap" id="app">
+  <div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري تحميل التقرير...</span></div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/reports.js"></script>
+<script>
+var _D = null, _sel = '', _specialFilter = '__all__', _specialTab = 'absent';
+
+async function loadData() {
+  document.getElementById('app').innerHTML = '<div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري التحميل...</span></div>';
+  try {
+    const res = await loadReportData();
+    _D = res.summary;
+    document.getElementById('navTitle').textContent = 'تقرير المجمع — ' + res.complex.name;
+    if (!_sel && _D.halaqas.length) _sel = _D.halaqas[0].name;
+    render();
+  } catch(e) {
+    document.getElementById('app').innerHTML = `<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: ${escH(e.message||String(e))}</div>`;
+  }
+}
+
+function render() {
+  if (!_D) return;
+  const c = _D.center;
+  const halaqas = _D.halaqas;
+  const students = _sel ? (_D.studentsByHalaqa[_sel]||[]) : [];
+
+  const halaqaRows = halaqas.map((h,i) => {
+    const isSel = _sel === h.name;
+    return `<tr onclick="selHalaqa('${h.name.replace(/'/g,"&#39;")}')" style="cursor:pointer;" class="${isSel?'row-sel':''}">
+      <td class="text-muted">${i+1}</td>
+      <td><b>${escH(h.name)}</b>${isSel?'<span class="badge-sard badge-prim" style="margin-right:6px;font-size:.7rem;">مُختارة</span>':''}</td>
+      <td><span class="badge-sard badge-pass">${fN(h.present)}</span></td>
+      <td><span class="badge-sard badge-warn">${fN(h.late)}</span></td>
+      <td><span class="badge-sard badge-info">${fN(h.excused)}</span></td>
+      <td><span class="badge-sard badge-fail">${fN(h.absent)}</span></td>
+      <td>${fN(h.expectedParts)}</td><td>${fN(h.displayedParts)}</td>
+      <td style="color:var(--success);font-weight:700;">${fN(h.passedParts)}</td>
+      <td>${fP(h.coveragePercent)}%</td>
+      <td style="color:var(--warning);">${fN(h.remainingParts)}</td>
+      <td style="color:var(--danger);">${fN(h.failedParts)}</td>
+      <td style="color:var(--danger);">${fP(h.failPercent)}%</td>
+      <td style="color:var(--primary);font-weight:800;">${fP(h.globalPercent)}%</td>
+      <td><span class="rank-badge ${rkCls(h.rank)}">${h.rank}</span></td>
+    </tr>`;
+  }).join('');
+
+  const halaqaOpts = halaqas.map(h => `<option value="${escH(h.name)}" ${_sel===h.name?'selected':''}>${escH(h.name)}</option>`).join('');
+
+  const studentRows = !students.length
+    ? '<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--text-muted);">لا توجد بيانات لهذه الحلقة</td></tr>'
+    : students.map((st,i) => {
+      const sL = {present:'حاضر',late:'متأخر',excused:'معتذر',absent:'غائب'}[st.status]||'—';
+      const sC = {present:'badge-pass',late:'badge-warn',excused:'badge-info',absent:'badge-fail'}[st.status]||'badge-prim';
+      return `<tr>
+        <td class="text-muted">${i+1}</td><td><b>${escH(st.name)}</b></td>
+        <td><span class="badge-sard ${sC}">${sL}</span></td>
+        <td>${fN(st.totalExpected)}</td><td>${fN(st.displayed)}</td>
+        <td style="color:var(--success);font-weight:700;">${fN(st.passed)}</td>
+        <td>${fP(st.coveragePct)}%</td>
+        <td style="color:#1d4ed8;">${fP(st.passFromExpPct)}%</td>
+        <td style="color:var(--danger);">${fN(st.failed)}</td>
+        <td style="color:var(--danger);">${fP(st.failPct)}%</td>
+        <td style="color:var(--success);font-weight:800;">${fP(st.studentPct)}%</td>
+        <td><span class="rank-badge ${rkCls(st.rank)}">${st.rank}</span></td>
+      </tr>`;
+    }).join('');
+
+  document.getElementById('app').innerHTML =
+    `<div class="card-sard animate-in">
+      <div class="card-title"><i class="fas fa-building-columns" style="color:var(--gold);"></i> تقرير المجمع العام</div>
+      <div class="grid-3" style="margin-bottom:12px;">
+        ${kpiCard('عدد الحلقات',fN(c.halaqaCount),'fa-layer-group')}
+        ${kpiCard('حاضر / متأخر',fN(c.present)+' / '+fN(c.late),'fa-users')}
+        ${kpiCard('غياب / اعتذار',fN(c.absent)+' / '+fN(c.excused),'fa-user-clock')}
+      </div>
+      <div class="grid-3" style="margin-bottom:12px;">
+        ${kpiCard('الأجزاء المفترضة',fN(c.expectedParts),'fa-list-ol')}
+        ${kpiCard('الأجزاء المعروضة',fN(c.displayedParts),'fa-book-open')}
+        ${kpiCard('الأجزاء المجتازة',fN(c.passedParts),'fa-check-circle','green')}
+      </div>
+      <div class="grid-4">
+        ${kpiCard('أجزاء الرسوب',fN(c.failedParts),'fa-times-circle','red')}
+        ${kpiCard('الأجزاء المتبقية',fN(c.remainingParts),'fa-hourglass-half','gold')}
+        ${kpiCardBar('نسبة العرض',c.coveragePercent,'fa-chart-line')}
+        ${kpiCardBar('نسبة الاجتياز',c.globalPercent,'fa-trophy')}
+      </div>
+    </div>
+
+    <div class="card-sard animate-in">
+      <div class="card-title"><i class="fas fa-table-list" style="color:var(--gold);"></i> تقرير الحلقات</div>
+      <div class="tbl-wrap"><table class="sard-table">
+        <thead><tr><th>#</th><th>اسم الحلقة</th><th>حاضر</th><th>متأخر</th><th>معتذر</th><th>غائب</th>
+        <th>المفترض</th><th>المعروضة</th><th>المجتازة</th><th>نسبة العرض</th>
+        <th>المتبقية</th><th>الرسوب</th><th>نسبة الرسوب</th><th>النسبة العامة</th><th>الترتيب</th></tr></thead>
+        <tbody>${halaqaRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card-sard animate-in">
+      <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;"><i class="fas fa-user-graduate" style="color:var(--gold);"></i> تقرير الحلقة التفصيلي</div>
+        <div class="section-tools">
+          <span class="text-muted fw-bold" style="font-size:.85rem;">اختر الحلقة:</span>
+          <select class="sard-select" id="hSel" onchange="selHalaqa(this.value)">${halaqaOpts}</select>
+          <button class="btn-excel-sard" onclick="exportStudents()"><i class="fas fa-file-export"></i> تصدير CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="sard-table">
+        <thead><tr><th>#</th><th>اسم الطالب</th><th>الحضور</th><th>المفترض</th><th>المعروضة</th>
+        <th>المجتازة</th><th>نسبة العرض</th><th>نسبة الاجتياز</th><th>الرسوب</th><th>نسبة الرسوب</th><th>نسبة الطالب</th><th>الترتيب</th></tr></thead>
+        <tbody>${studentRows}</tbody>
+      </table></div>
+    </div>
+
+    ${buildSpecialSection(students)}`;
+}
+
+function selHalaqa(name) { _sel = name; render(); }
+
+function buildSpecialSection(students) {
+  if (!students.length) return '';
+  const tabs = [{id:'absent',label:'الغائبون',badge:'badge-fail'},{id:'present',label:'الحاضرون',badge:'badge-pass'},{id:'failed',label:'الراسبون في كل مقاطعهم',badge:'badge-fail'}];
+  const rows = {
+    absent:  students.filter(s=>s.status==='absent'),
+    present: students.filter(s=>s.status==='present'||s.status==='late'),
+    failed:  students.filter(s=>s.displayed>0&&s.passed===0)
+  };
+  const makeRows = arr => !arr.length ? '<tr><td colspan="4" class="text-muted text-center" style="padding:20px;">لا يوجد</td></tr>'
+    : arr.map((s,i)=>`<tr><td>${i+1}</td><td><b>${escH(s.name)}</b></td><td class="text-muted">${escH(s.halaqa)}</td><td>${s.guardian_phone?`<a href="https://wa.me/${s.guardian_phone.replace(/\D/g,'')}" target="_blank" style="color:#25D366;"><i class="fab fa-whatsapp"></i> ${escH(s.guardian_phone)}</a>`:'—'}</td></tr>`).join('');
+
+  return `<div class="card-sard animate-in">
+    <div class="card-title"><i class="fas fa-filter" style="color:var(--gold);"></i> قوائم خاصة</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      ${tabs.map(t=>`<button class="subtab-btn ${_specialTab===t.id?'active':''}" onclick="_specialTab='${t.id}';render();">${t.label} <span class="badge-sard ${t.badge}" style="margin-right:4px;">${rows[t.id].length}</span></button>`).join('')}
+    </div>
+    <div class="tbl-wrap"><table class="sard-table">
+      <thead><tr><th>#</th><th>الطالب</th><th>الحلقة</th><th>جوال ولي الأمر</th></tr></thead>
+      <tbody>${makeRows(rows[_specialTab])}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function exportStudents() {
+  const students = _sel ? (_D.studentsByHalaqa[_sel]||[]) : [];
+  const rows = [['الاسم','الحضور','المفترض','المعروضة','المجتازة','نسبة العرض','نسبة الاجتياز','نسبة الطالب','الترتيب']];
+  students.forEach(s => rows.push([s.name, s.status||'—', s.totalExpected, s.displayed, s.passed, fP(s.coveragePct)+'%', fP(s.passPct)+'%', fP(s.studentPct)+'%', s.rank]));
+  exportCSV(rows, 'تقرير_الحلقة_' + (_sel||'') + '.csv');
+}
+
+loadData();
+</script>
+</body>
+</html>

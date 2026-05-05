@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>استعلام نتائج الطلاب</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="../css/reports.css"/>
+  <style>
+    .student-result-card { border-radius:var(--radius);border:2px solid var(--border);overflow:hidden;margin-bottom:16px; }
+    .student-header { background:var(--primary);color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px; }
+    .student-header-name { font-size:1.2rem;font-weight:800; }
+    .student-header-info { font-size:.85rem;opacity:.8; }
+    .score-big { width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;border:3px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:#fff;flex-shrink:0; }
+    .wa-btn { display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:8px 16px;border-radius:var(--radius-sm);font-family:'Tajawal',sans-serif;font-weight:700;font-size:.88rem;text-decoration:none;border:none;cursor:pointer;transition:background .2s; }
+    .wa-btn:hover { background:#128C7E; }
+    .search-hero { background:linear-gradient(135deg,var(--primary),#025a96);padding:40px 20px;text-align:center;color:#fff; }
+    .search-box { max-width:500px;margin:20px auto 0;display:flex;gap:8px; }
+    .search-box input { flex:1;padding:14px 18px;border-radius:var(--radius-sm);border:none;font-family:'Tajawal',sans-serif;font-size:1rem;font-weight:500; }
+    .search-box button { background:var(--gold);color:#fff;border:none;border-radius:var(--radius-sm);padding:14px 22px;font-family:'Tajawal',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;white-space:nowrap; }
+  </style>
+</head>
+<body>
+<nav class="navbar-sard">
+  <div class="navbar-brand"><i class="fas fa-quran"></i><span id="navTitle">استعلام نتائج الطلاب</span></div>
+  <div class="d-flex align-center gap-2">
+    <a href="../index.html" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+</nav>
+
+<div class="search-hero">
+  <h2 style="font-weight:800;font-size:1.4rem;margin-bottom:6px;"><i class="fas fa-magnifying-glass-chart" style="color:var(--gold);margin-left:8px;"></i> استعلام نتائج الطلاب</h2>
+  <p style="opacity:.8;font-size:.9rem;">ابحث باسم الطالب أو رقم الهوية</p>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="اسم الطالب أو الهوية..." onkeydown="if(event.key==='Enter')doSearch()"/>
+    <button onclick="doSearch()"><i class="fas fa-search"></i> بحث</button>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="filterRow" style="display:none;">
+    <button class="subtab-btn active" onclick="filterResults('all',this)">الكل</button>
+    <button class="subtab-btn" onclick="filterResults('passed',this)">الناجحون</button>
+    <button class="subtab-btn" onclick="filterResults('failed',this)">الراسبون</button>
+  </div>
+  <div id="results"></div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/reports.js"></script>
+<script>
+var _D = null, _searchResults = [], _filter = 'all';
+
+window.addEventListener('load', async () => {
+  try {
+    const res = await loadReportData();
+    _D = res;
+    document.getElementById('navTitle').textContent = 'استعلام نتائج — ' + res.complex.name;
+    // عرض كل الطلاب افتراضياً
+    _searchResults = _D.summary.students;
+    renderResults();
+  } catch(e) {
+    document.getElementById('results').innerHTML = `<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);">${escH(e.message)}</div>`;
+  }
+});
+
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (!_D) return;
+  if (!q) { _searchResults = _D.summary.students; renderResults(); return; }
+  _searchResults = _D.summary.students.filter(s =>
+    (s.name||'').toLowerCase().includes(q) ||
+    (s.sid||'').toLowerCase().includes(q) ||
+    (s.halaqa||'').toLowerCase().includes(q)
+  );
+  renderResults();
+}
+
+function filterResults(f, btn) {
+  _filter = f;
+  document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderResults();
+}
+
+function renderResults() {
+  const el = document.getElementById('results');
+  const filterRow = document.getElementById('filterRow');
+  if (filterRow) filterRow.style.display = _searchResults.length ? 'flex' : 'none';
+
+  let list = _searchResults;
+  if (_filter === 'passed') list = list.filter(s => s.displayed>0 && s.passed>0 && s.passPct>=50);
+  if (_filter === 'failed') list = list.filter(s => s.displayed>0 && s.passPct<50);
+
+  if (!list.length) {
+    el.innerHTML = '<div class="card-sard text-center" style="padding:48px;"><i class="fas fa-search" style="font-size:3rem;color:var(--text-muted);margin-bottom:12px;display:block;opacity:.4;"></i><p class="text-muted">لا توجد نتائج</p></div>';
+    return;
+  }
+
+  el.innerHTML = list.slice(0,20).map(st => buildStudentCard(st)).join('') +
+    (list.length>20 ? `<p class="text-muted text-center" style="padding:16px;">يُعرض أول 20 طالب من أصل ${list.length}</p>` : '');
+}
+
+function buildStudentCard(st) {
+  const passColor = st.studentPct>=70?'#1a7a4a':st.studentPct>=50?'#d97706':'#c0392b';
+  const sections = st.sections || [];
+  const settings = _D.settings;
+  const miniTable = sections.length ? buildMiniTable(sections, st.eff.partsDivisions) : '<p class="text-muted" style="text-align:center;padding:16px;">لا توجد مقاطع مسجَّلة بعد</p>';
+
+  const lastSession = sections.length ? sections[sections.length-1] : null;
+
+  return `<div class="student-result-card animate-in">
+    <div class="student-header">
+      <div>
+        <div class="student-header-name"><i class="fas fa-user-graduate" style="color:var(--gold);margin-left:8px;"></i>${escH(st.name)}</div>
+        <div class="student-header-info" style="margin-top:4px;">
+          ${st.halaqa?`<span><i class="fas fa-sitemap" style="margin-left:4px;"></i>${escH(st.halaqa)}</span>  `:''}
+          ${st.track?`<span><i class="fas fa-route" style="margin-left:4px;"></i>مسار ${escH(st.track)}</span>  `:''}
+          <span><i class="fas fa-book" style="margin-left:4px;"></i>${st.parts_count} جزء محفوظ</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <span class="badge-sard badge-pass" style="background:rgba(255,255,255,.15);color:#fff;">✔ مجتاز: ${st.passed}</span>
+          <span class="badge-sard badge-fail" style="background:rgba(255,255,255,.15);color:#fff;">✖ راسب: ${st.failed}</span>
+          <span class="badge-sard badge-prim" style="background:rgba(255,255,255,.15);color:#fff;">معروضة: ${st.displayed}</span>
+          ${lastSession?`<span class="badge-sard" style="background:rgba(255,255,255,.15);color:#fff;"><i class="fas fa-calendar"></i> ${escH(lastSession.date||'')}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="score-big" style="border-color:${passColor};">${fP(st.studentPct)}%</div>
+        ${st.guardian_phone?`<a href="https://wa.me/${st.guardian_phone.replace(/\D/g,'')}" target="_blank" class="wa-btn"><i class="fab fa-whatsapp"></i> إرسال</a>`:''}
+      </div>
+    </div>
+    <div style="padding:16px;">
+      <div class="grid-4" style="margin-bottom:14px;">
+        ${kpiCard('المفترض',fN(st.totalExpected),'fa-list-ol','')}
+        ${kpiCard('المعروضة',fN(st.displayed),'fa-book-open','')}
+        ${kpiCardBar('نسبة العرض',st.coveragePct,'fa-chart-bar')}
+        ${kpiCardBar('نسبة الاجتياز',st.passPct,'fa-trophy')}
+      </div>
+      ${miniTable}
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>

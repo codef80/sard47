@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تقرير المجمع والمسارات</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="../css/reports.css"/>
+</head>
+<body>
+<nav class="navbar-sard">
+  <div class="navbar-brand"><i class="fas fa-quran"></i><span id="navTitle">تقرير المجمع والمسارات</span></div>
+  <div class="d-flex align-center gap-2">
+    <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
+    <a href="../index.html" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+</nav>
+<div class="page-wrap" id="app">
+  <div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري التحميل...</span></div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/reports.js"></script>
+<script>
+var _D = null, _sel = '', _specialTab = 'absent';
+
+async function loadData() {
+  document.getElementById('app').innerHTML = '<div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري التحميل...</span></div>';
+  try {
+    const res = await loadReportData();
+    _D = res.summary;
+    document.getElementById('navTitle').textContent = 'تقرير المجمع والمسارات — ' + res.complex.name;
+    if (!_sel && _D.tracks.length) _sel = _D.tracks[0].name;
+    render();
+  } catch(e) {
+    document.getElementById('app').innerHTML = `<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);">${escH(e.message)}</div>`;
+  }
+}
+
+function render() {
+  if (!_D) return;
+  const c = _D.center;
+  const track = _D.tracks.find(t=>t.name===_sel);
+  const trackOpts = _D.tracks.map(t=>`<option value="${escH(t.name)}" ${_sel===t.name?'selected':''}>${escH(t.name)}</option>`).join('');
+  const students = track ? track.students : [];
+
+  // صف الحضور من بيانات المسار
+  const trackRows = _D.tracks.map((t,i)=>{
+    const isSel = _sel===t.name;
+    return `<tr onclick="selTrack('${t.name.replace(/'/g,"&#39;")}')" style="cursor:pointer;" class="${isSel?'row-sel':''}">
+      <td>${i+1}</td>
+      <td><b>${escH(t.name)}</b>${isSel?'<span class="badge-sard badge-prim" style="margin-right:6px;font-size:.7rem;">مُختار</span>':''}</td>
+      <td>${fN(t.studentCount)}</td>
+      <td>${fN(t.expectedParts)}</td><td>${fN(t.displayedParts)}</td>
+      <td style="color:var(--success);font-weight:700;">${fN(t.passedParts)}</td>
+      <td style="color:var(--danger);">${fN(t.failedParts)}</td>
+      <td>${fN(t.remainingParts)}</td>
+      <td>${fP(t.coveragePercent)}%</td>
+      <td style="color:var(--primary);font-weight:800;">${fP(t.globalPercent)}%</td>
+      <td><span class="rank-badge ${rkCls(t.rank)}">${t.rank}</span></td>
+    </tr>`;
+  }).join('');
+
+  const studentRows = !students.length
+    ? '<tr><td colspan="10" class="text-muted text-center" style="padding:24px;">لا توجد بيانات لهذا المسار</td></tr>'
+    : students.map((st,i)=>{
+      const sL={present:'حاضر',late:'متأخر',excused:'معتذر',absent:'غائب'}[st.status]||'—';
+      const sC={present:'badge-pass',late:'badge-warn',excused:'badge-info',absent:'badge-fail'}[st.status]||'badge-prim';
+      return `<tr>
+        <td>${i+1}</td><td><b>${escH(st.name)}</b></td>
+        <td class="text-muted" style="font-size:.78rem;">${escH(st.halaqa||'—')}</td>
+        <td><span class="badge-sard ${sC}">${sL}</span></td>
+        <td>${fN(st.totalExpected)}</td><td>${fN(st.displayed)}</td>
+        <td style="color:var(--success);font-weight:700;">${fN(st.passed)}</td>
+        <td>${fP(st.coveragePct)}%</td>
+        <td style="font-weight:800;color:${st.studentPct>=70?'var(--success)':st.studentPct>=50?'var(--warning)':'var(--danger)'};">${fP(st.studentPct)}%</td>
+        <td><span class="rank-badge ${rkCls(st.rank)}">${st.rank}</span></td>
+      </tr>`;
+    }).join('');
+
+  // قائمة الغياب والرسوب
+  const specRows = {
+    absent: students.filter(s=>s.status==='absent'),
+    failed: students.filter(s=>s.displayed>0&&s.passed===0)
+  };
+
+  document.getElementById('app').innerHTML =
+    `<div class="card-sard animate-in">
+      <div class="card-title"><i class="fas fa-building-columns" style="color:var(--gold);"></i> تقرير المجمع الإجمالي</div>
+      <div class="grid-3" style="margin-bottom:12px;">
+        ${kpiCard('عدد المسارات',fN(_D.tracks.length),'fa-route')}
+        ${kpiCard('إجمالي الطلاب',fN(c.studentCount),'fa-users')}
+        ${kpiCard('الأجزاء المجتازة',fN(c.passedParts),'fa-check-circle','green')}
+      </div>
+      <div class="grid-4">
+        ${kpiCard('الأجزاء المفترضة',fN(c.expectedParts),'fa-list-ol')}
+        ${kpiCard('الأجزاء المعروضة',fN(c.displayedParts),'fa-book-open')}
+        ${kpiCardBar('نسبة العرض',c.coveragePercent,'fa-chart-line')}
+        ${kpiCardBar('النسبة العامة',c.globalPercent,'fa-trophy')}
+      </div>
+    </div>
+
+    <div class="card-sard animate-in">
+      <div class="card-title"><i class="fas fa-route" style="color:var(--gold);"></i> تقرير المسارات</div>
+      <div class="tbl-wrap"><table class="sard-table">
+        <thead><tr><th>#</th><th>المسار</th><th>الطلاب</th><th>المفترض</th><th>المعروضة</th><th>المجتازة</th><th>الرسوب</th><th>المتبقية</th><th>نسبة العرض</th><th>النسبة العامة</th><th>الترتيب</th></tr></thead>
+        <tbody>${trackRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card-sard animate-in">
+      <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;"><i class="fas fa-user-graduate" style="color:var(--gold);"></i> تقرير المسار التفصيلي</div>
+        <div class="section-tools">
+          <span class="text-muted fw-bold" style="font-size:.85rem;">اختر المسار:</span>
+          <select class="sard-select" onchange="selTrack(this.value)">${trackOpts}</select>
+          <button class="btn-excel-sard" onclick="exportTrack()"><i class="fas fa-file-export"></i> تصدير CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="sard-table">
+        <thead><tr><th>#</th><th>الطالب</th><th>الحلقة</th><th>الحضور</th><th>المفترض</th><th>المعروضة</th><th>المجتازة</th><th>نسبة العرض</th><th>نسبة الطالب</th><th>الترتيب</th></tr></thead>
+        <tbody>${studentRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card-sard animate-in">
+      <div class="card-title"><i class="fas fa-filter" style="color:var(--gold);"></i> قوائم خاصة بالمسار</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="subtab-btn ${_specialTab==='absent'?'active':''}" onclick="_specialTab='absent';render();">غائبو المسار <span class="badge-sard badge-fail" style="margin-right:4px;">${specRows.absent.length}</span></button>
+        <button class="subtab-btn ${_specialTab==='failed'?'active':''}" onclick="_specialTab='failed';render();">الراسبون في كل مقاطعهم <span class="badge-sard badge-fail" style="margin-right:4px;">${specRows.failed.length}</span></button>
+      </div>
+      <div class="tbl-wrap"><table class="sard-table">
+        <thead><tr><th>#</th><th>الطالب</th><th>الحلقة</th><th>جوال ولي الأمر</th></tr></thead>
+        <tbody>${(specRows[_specialTab]||[]).length?
+          (specRows[_specialTab]||[]).map((s,i)=>`<tr><td>${i+1}</td><td><b>${escH(s.name)}</b></td><td>${escH(s.halaqa||'—')}</td><td>${s.guardian_phone?`<a href="https://wa.me/${s.guardian_phone.replace(/\D/g,'')}" target="_blank" style="color:#25D366;"><i class="fab fa-whatsapp"></i> ${escH(s.guardian_phone)}</a>`:'—'}</td></tr>`).join('')
+          :'<tr><td colspan="4" class="text-muted text-center" style="padding:20px;">لا يوجد</td></tr>'
+        }</tbody>
+      </table></div>
+    </div>`;
+}
+
+function selTrack(name) { _sel = name; render(); }
+function exportTrack() {
+  const track = _D.tracks.find(t=>t.name===_sel); if (!track) return;
+  const rows=[['الاسم','الحلقة','الحضور','المفترض','المعروضة','المجتازة','نسبة الطالب','الترتيب']];
+  track.students.forEach(s=>rows.push([s.name,s.halaqa||'—',s.status||'—',s.totalExpected,s.displayed,s.passed,fP(s.studentPct)+'%',s.rank]));
+  exportCSV(rows,'تقرير_مسار_'+(_sel||'')+'.csv');
+}
+loadData();
+</script>
+</body>
+</html>

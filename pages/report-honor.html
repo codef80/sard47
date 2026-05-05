@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>صفحة التكريم</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="../css/reports.css"/>
+  <style>
+    body { background: linear-gradient(135deg,#0a1628 0%,#013560 50%,#014979 100%); min-height:100vh; }
+    .honor-wrap { max-width:1000px;margin:auto;padding:20px 20px 60px; }
+    .honor-header { text-align:center;padding:40px 20px 20px;color:#fff; }
+    .honor-header h1 { font-size:2.2rem;font-weight:900;margin-bottom:8px; }
+    .honor-header h1 i { color:var(--gold); }
+    .honor-header p { opacity:.7;font-size:.95rem; }
+    .podium-wrap { display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:30px auto;max-width:600px; }
+    .podium-col { display:flex;flex-direction:column;align-items:center;gap:8px;flex:1; }
+    .podium-card { width:100%;border-radius:var(--radius);text-align:center;padding:16px 12px;color:#fff;position:relative; }
+    .p1 { background:linear-gradient(135deg,#fbbf24,#d97706);box-shadow:0 8px 32px rgba(251,191,36,.4); }
+    .p2 { background:linear-gradient(135deg,#94a3b8,#64748b);box-shadow:0 8px 24px rgba(100,116,139,.3); }
+    .p3 { background:linear-gradient(135deg,#d97706,#92400e);box-shadow:0 8px 24px rgba(217,119,6,.3); }
+    .podium-rank { font-size:2rem;margin-bottom:4px; }
+    .podium-name { font-weight:800;font-size:.95rem;line-height:1.3; }
+    .podium-score { font-size:1.4rem;font-weight:900;margin-top:6px; }
+    .podium-sub { font-size:.75rem;opacity:.8; }
+    .podium-stand { background:rgba(255,255,255,.1);border-radius:var(--radius-sm) var(--radius-sm) 0 0;width:100%;text-align:center;padding:6px 0;font-size:.75rem;color:rgba(255,255,255,.6);font-weight:600; }
+    .honor-table-wrap { background:rgba(255,255,255,.05);border-radius:var(--radius);border:1px solid rgba(255,255,255,.1);overflow:hidden;margin-bottom:20px; }
+    .honor-table-title { padding:14px 20px;font-weight:800;color:#fff;font-size:1rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.1); }
+    .honor-table-title i { color:var(--gold); }
+    .honor-tbl { width:100%;border-collapse:collapse;font-size:.85rem; }
+    .honor-tbl thead th { background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);font-weight:700;padding:10px 14px;text-align:right; }
+    .honor-tbl tbody tr { border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s; }
+    .honor-tbl tbody tr:hover { background:rgba(255,255,255,.06); }
+    .honor-tbl tbody td { padding:10px 14px;color:#fff;vertical-align:middle; }
+    .filter-controls { display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:20px; }
+    .honor-filter-btn { padding:8px 18px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.7);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s; }
+    .honor-filter-btn.active { background:var(--gold);border-color:var(--gold);color:#fff; }
+    .pct-badge { display:inline-flex;padding:3px 12px;border-radius:12px;font-weight:800;font-size:.85rem; }
+    .pct-hi { background:rgba(16,185,129,.2);color:#6ee7b7; }
+    .pct-mid { background:rgba(251,191,36,.2);color:#fde68a; }
+    .pct-lo { background:rgba(239,68,68,.2);color:#fca5a5; }
+    .top-section { background:rgba(255,255,255,.04);border-radius:var(--radius);border:1px solid rgba(255,255,255,.08);padding:20px;margin-bottom:16px; }
+    .wa-btn { display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;padding:5px 12px;border-radius:12px;font-size:.78rem;font-weight:700;text-decoration:none;border:none;cursor:pointer; }
+  </style>
+</head>
+<body>
+<nav class="navbar-sard" style="background:rgba(0,0,0,.3);backdrop-filter:blur(10px);">
+  <div class="navbar-brand"><i class="fas fa-quran"></i><span id="navTitle">صفحة التكريم</span></div>
+  <div class="d-flex align-center gap-2">
+    <select id="halaqaFilter" class="sard-select" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2);" onchange="render()">
+      <option value="">كل المجمع</option>
+    </select>
+    <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
+    <a href="../index.html" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
+  </div>
+</nav>
+
+<div class="honor-wrap">
+  <div class="honor-header animate-in">
+    <h1><i class="fas fa-award"></i> صفحة التكريم</h1>
+    <p id="honorSubtitle">أفضل طلاب برنامج السرد</p>
+  </div>
+
+  <div class="filter-controls" id="filterControls">
+    <button class="honor-filter-btn active" onclick="setFilter('all',this)">كل الطلاب</button>
+    <button class="honor-filter-btn" onclick="setFilter('passed',this)">الناجحون فقط</button>
+    <button class="honor-filter-btn" onclick="setFilter('full',this)">أتمّوا الجلسات كاملاً</button>
+  </div>
+
+  <div id="app">
+    <div class="spinner-wrap animate-in"><div class="spinner" style="border-color:rgba(255,255,255,.2);border-top-color:#fff;"></div><span style="color:rgba(255,255,255,.6);">جاري التحميل...</span></div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/reports.js"></script>
+<script>
+var _D = null, _filter = 'all';
+
+async function loadData() {
+  document.getElementById('app').innerHTML = '<div class="spinner-wrap animate-in"><div class="spinner" style="border-color:rgba(255,255,255,.2);border-top-color:#fff;"></div><span style="color:rgba(255,255,255,.6);">جاري التحميل...</span></div>';
+  try {
+    const res = await loadReportData();
+    _D = res;
+    document.getElementById('navTitle').textContent = 'التكريم — ' + res.complex.name;
+    document.getElementById('honorSubtitle').textContent = 'أفضل طلاب ' + res.complex.name;
+    // populate halaqa filter
+    const sel = document.getElementById('halaqaFilter');
+    sel.innerHTML = '<option value="">كل المجمع</option>' + res.summary.halaqas.map(h=>`<option value="${escH(h.name)}">${escH(h.name)}</option>`).join('');
+    render();
+  } catch(e) {
+    document.getElementById('app').innerHTML = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,.6);">${escH(e.message)}</div>`;
+  }
+}
+
+function setFilter(f, btn) {
+  _filter = f;
+  document.querySelectorAll('.honor-filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  render();
+}
+
+function render() {
+  if (!_D) return;
+  const halaqaF = document.getElementById('halaqaFilter').value;
+  let students = _D.summary.students.filter(s => s.displayed > 0);
+  if (halaqaF) students = students.filter(s => s.halaqa === halaqaF);
+  if (_filter === 'passed') students = students.filter(s => s.passPct >= 50);
+  if (_filter === 'full')   students = students.filter(s => s.remaining === 0);
+  students = students.sort((a,b) => b.studentPct - a.studentPct);
+
+  if (!students.length) { document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.5);"><i class="fas fa-users" style="font-size:3rem;display:block;margin-bottom:12px;"></i><p>لا توجد نتائج</p></div>'; return; }
+
+  const top3 = students.slice(0,3);
+  const rest  = students.slice(3);
+
+  // منصة التكريم
+  const podOrder = top3.length===3 ? [top3[1],top3[0],top3[2]] : top3;
+  const podStyles = top3.length===3 ? ['p2','p1','p3'] : ['p1'];
+  const podRanks = top3.length===3 ? ['🥈','🥇','🥉'] : ['🥇'];
+  const podHeights = top3.length===3 ? ['120px','150px','100px'] : ['150px'];
+
+  let podHtml = '<div class="podium-wrap">';
+  podOrder.forEach((st,i) => {
+    const pct = fP(st.studentPct);
+    const pClass = podStyles[i];
+    podHtml += `<div class="podium-col">
+      <div class="podium-card ${pClass}">
+        <div class="podium-rank">${podRanks[i]}</div>
+        <div class="podium-name">${escH(st.name)}</div>
+        <div class="podium-sub">${escH(st.halaqa||'')}</div>
+        <div class="podium-score">${pct}%</div>
+        <div class="podium-sub">مجتاز: ${st.passed} · راسب: ${st.failed}</div>
+        ${st.guardian_phone?`<a href="https://wa.me/${st.guardian_phone.replace(/\D/g,'')}" target="_blank" class="wa-btn" style="margin-top:8px;"><i class="fab fa-whatsapp"></i> تكريم</a>`:''}
+      </div>
+      <div class="podium-stand" style="height:${podHeights[i]};display:flex;align-items:center;justify-content:center;">${i===1?'المركز الأول':i===0?'المركز الثاني':'المركز الثالث'}</div>
+    </div>`;
+  });
+  podHtml += '</div>';
+
+  // جدول بقية الطلاب
+  let tableHtml = '';
+  if (rest.length) {
+    const tRows = rest.map((st,i) => {
+      const pct = Number(st.studentPct);
+      const pClass = pct>=70?'pct-hi':pct>=50?'pct-mid':'pct-lo';
+      return `<tr>
+        <td><span class="rank-badge rk-n">${i+4}</span></td>
+        <td style="color:#fff;font-weight:700;">${escH(st.name)}</td>
+        <td style="color:rgba(255,255,255,.7);">${escH(st.halaqa||'—')}</td>
+        <td>${st.track?`<span style="background:rgba(177,151,56,.2);color:#fde68a;padding:2px 8px;border-radius:10px;font-size:.78rem;">${escH(st.track)}</span>`:'—'}</td>
+        <td style="color:rgba(255,255,255,.8);">${st.passed}/${st.displayed}</td>
+        <td><span class="pct-badge ${pClass}">${fP(pct)}%</span></td>
+        <td>${st.guardian_phone?`<a href="https://wa.me/${st.guardian_phone.replace(/\D/g,'')}" target="_blank" class="wa-btn"><i class="fab fa-whatsapp"></i> تكريم</a>`:'—'}</td>
+      </tr>`;
+    }).join('');
+
+    tableHtml = `<div class="honor-table-wrap">
+      <div class="honor-table-title"><i class="fas fa-list-ol"></i> قائمة المتفوقين</div>
+      <div style="overflow-x:auto;"><table class="honor-tbl">
+        <thead><tr><th>#</th><th>الطالب</th><th>الحلقة</th><th>المسار</th><th>المجتاز/المعروض</th><th>النسبة</th><th></th></tr></thead>
+        <tbody>${tRows}</tbody>
+      </table></div>
+    </div>`;
+  }
+
+  document.getElementById('app').innerHTML = podHtml + tableHtml;
+}
+
+loadData();
+</script>
+</body>
+</html>
