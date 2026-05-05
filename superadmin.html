@@ -293,7 +293,7 @@ async function openCreateComplex() {
 
 async function deleteComplex(id, name) {
   const r = await Swal.fire({ icon:'warning', title:'حذف المجمع', html:`سيتم حذف <b>${escapeHtml(name)}</b> وجميع بياناته نهائياً!`, showCancelButton:true, confirmButtonText:'حذف نهائياً', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b', input:'text', inputPlaceholder:'اكتب "حذف" للتأكيد', preConfirm: v => { if (v !== 'حذف') Swal.showValidationMessage('اكتب "حذف" للتأكيد'); return v; } });
-  if (!r.isConfirmed) return;
+  if (!r.isConfirmed || r.value !== 'حذف') return;
   showSpinner();
   try { await SardAPI.deleteComplex(id); await loadAll(); hideSpinner(); showToast('تم الحذف','success'); }
   catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }

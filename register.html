@@ -211,29 +211,28 @@ async function doCreateComplex() {
     // 1. إنشاء المجمع
     const complex = await SardAPI.createComplex(name, code);
 
-    // 2. تسجيل المشرف
-    const auth = await SardAPI.signUp(email, password, { name: supName, role: 'supervisor', complex_id: complex.id });
+    // 2. تسجيل المشرف في Supabase Auth
+    const auth = await SardAPI.signUp(email, password, { name: supName });
 
-    // 3. إنشاء profile للمشرف (active مباشرة)
-    await _sb.from('users').insert({
-      id: auth.user.id,
-      complex_id: complex.id,
-      name: supName,
-      role: 'supervisor',
-      phone,
-      status: 'active'
-    });
+    if (!auth.user) throw new Error('فشل إنشاء الحساب');
+
+    // 3. إنشاء profile المشرف (active مباشرة)
+    await SardAPI.createUserProfile(auth.user.id, supName, 'supervisor', complex.id, phone, 'active');
 
     _createdComplex = complex;
-    const link = location.origin + '/index.html?c=' + code;
+    const link = location.origin + location.pathname.replace('register.html','') + 'index.html?c=' + code;
     document.getElementById('generatedLink').value = link;
-    document.getElementById('goToAppLink').href = link;
+    document.getElementById('goToAppLink').href = 'supervisor.html?c=' + code;
 
     hideSpinner();
     goStep(3);
   } catch(e) {
     hideSpinner();
-    showToast('خطأ: ' + (e.message || e), 'error');
+    if (e.message && e.message.includes('already registered')) {
+      showToast('هذا البريد مسجل مسبقاً، استخدم بريداً آخر أو ادخل مباشرة', 'error');
+    } else {
+      showToast('خطأ: ' + (e.message || e), 'error');
+    }
   }
 }
 
@@ -253,34 +252,35 @@ async function doJoin() {
     // التحقق من وجود المجمع
     const complex = await SardAPI.getComplexByCode(code);
 
-    // تسجيل المستخدم
-    const auth = await SardAPI.signUp(email, password, { name, complex_id: complex.id });
+    // تسجيل المستخدم في Auth
+    const auth = await SardAPI.signUp(email, password, { name });
+    if (!auth.user) throw new Error('فشل إنشاء الحساب');
 
-    // الحصول على إعدادات المجمع لمعرفة وضع القبول
+    // معرفة وضع القبول
     const settings = await SardAPI.getSettings(complex.id);
-    const autoAccept = settings?.registration_mode === 'auto';
+    const autoAccept = !settings || settings.registration_mode !== 'manual';
 
     // إنشاء profile
-    await _sb.from('users').insert({
-      id: auth.user.id,
-      complex_id: complex.id,
-      name,
-      role: 'reciter',
-      phone,
-      status: autoAccept ? 'active' : 'pending'
-    });
+    await SardAPI.createUserProfile(auth.user.id, name, 'reciter', complex.id, phone, autoAccept ? 'active' : 'pending');
 
     hideSpinner();
+
     if (autoAccept) {
-      await Swal.fire({ icon:'success', title:'تم التسجيل!', text:'يمكنك الدخول للنظام الآن.', confirmButtonColor:'#014979' });
+      // تسجيل الدخول مباشرة بعد التسجيل
+      try { await SardAPI.signIn(email, password); } catch(_){}
+      await Swal.fire({ icon:'success', title:'تم التسجيل!', text:'يمكنك الدخول الآن.', confirmButtonColor:'#014979' });
       location.href = 'index.html?c=' + code;
     } else {
-      await Swal.fire({ icon:'info', title:'تم إرسال الطلب', text:'سيتم مراجعة طلبك من قبل مشرف المجمع وإشعارك عند القبول.', confirmButtonColor:'#014979' });
+      await Swal.fire({ icon:'info', title:'تم إرسال الطلب', text:'سيتم مراجعة طلبك من قبل مشرف المجمع.', confirmButtonColor:'#014979' });
       location.href = 'index.html?c=' + code;
     }
   } catch(e) {
     hideSpinner();
-    showToast('خطأ: ' + (e.message || e), 'error');
+    if (e.message && e.message.includes('already registered')) {
+      showToast('هذا البريد مسجل مسبقاً، ادخل مباشرة من الصفحة الرئيسية', 'error');
+    } else {
+      showToast('خطأ: ' + (e.message || e), 'error');
+    }
   }
 }
 

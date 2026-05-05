@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -347,12 +346,17 @@ async function doStaffLogin(){
 async function loadData(){
   showSpinner('جارٍ تحميل البيانات...');
   try{
+    if(!STATE.complexId){hideSpinner();showToast('خطأ: لا يوجد مجمع محدد','error');return;}
     const[settings,trackConfigs,halaqas,students,records]=await Promise.all([SardAPI.getSettings(STATE.complexId),SardAPI.getTrackConfigs(STATE.complexId),SardAPI.getHalaqas(STATE.complexId),SardAPI.getStudents(STATE.complexId),SardAPI.getRecords(STATE.complexId)]);
     STATE.settings=dbS(settings);STATE.trackConfigs=trackConfigs;STATE.halaqas=halaqas;STATE.students=students;STATE.records=records;
     document.getElementById('landingWrap').style.display='none';document.getElementById('reciterWrap').style.display='none';
     document.getElementById('appWrap').style.display='block';document.getElementById('mainNav').style.display='flex';syncMNav();
     document.getElementById('navComplexName').textContent='— '+STATE.complexName;document.getElementById('navTeacher').textContent=STATE.teacherName;
-    if(STATE.user?.role==='supervisor'||STATE.user?.role==='superadmin')document.getElementById('nb-supervisor').style.display='';
+    // إظهار زر المشرف
+  if(STATE.user && (STATE.user.role==='supervisor'||STATE.user.role==='superadmin')){
+    const nbSup=document.getElementById('nb-supervisor');
+    if(nbSup)nbSup.style.display='';
+  }
     renderHalaqas();loadAttHalaqas();loadSettingsForm();applyReportsBtn();hideSpinner();
   }catch(e){hideSpinner();showToast('خطأ: '+e.message,'error');}
 }

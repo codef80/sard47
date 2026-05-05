@@ -159,12 +159,12 @@
       <div class="card-sard">
         <div class="card-title"><i class="fas fa-link" style="color:var(--primary);"></i> روابط التقارير</div>
         <div style="display:flex;flex-direction:column;gap:10px;">
-          <a href="pages/report-complex.html" target="_blank" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-building-columns" style="color:var(--gold);"></i> تقرير المجمع والحلق</a>
-          <a href="pages/report-complex-tracks.html" target="_blank" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-route" style="color:var(--gold);"></i> تقرير المجمع والمسارات</a>
-          <a href="pages/report-halaqas.html" target="_blank" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-users-rectangle" style="color:var(--gold);"></i> تقرير الحلق التفصيلي</a>
-          <a href="pages/report-tracks.html" target="_blank" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-diagram-project" style="color:var(--gold);"></i> تقرير المسارات التفصيلي</a>
-          <a href="pages/report-honor.html" target="_blank" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-award" style="color:var(--gold);"></i> صفحة التكريم</a>
-          <a href="pages/report-students.html" target="_blank" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-magnifying-glass-chart" style="color:var(--gold);"></i> استعلام الطلاب</a>
+          <a href="#" onclick="openReport('pages/report-complex.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-building-columns" style="color:var(--gold);"></i> تقرير المجمع والحلق</a>
+          <a href="#" onclick="openReport('pages/report-complex-tracks.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-route" style="color:var(--gold);"></i> تقرير المجمع والمسارات</a>
+          <a href="#" onclick="openReport('pages/report-halaqas.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-users-rectangle" style="color:var(--gold);"></i> تقرير الحلق التفصيلي</a>
+          <a href="#" onclick="openReport('pages/report-tracks.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-diagram-project" style="color:var(--gold);"></i> تقرير المسارات التفصيلي</a>
+          <a href="#" onclick="openReport('pages/report-honor.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-award" style="color:var(--gold);"></i> صفحة التكريم</a>
+          <a href="#" onclick="openReport('pages/report-students.html')" class="btn-outline-sard" style="text-decoration:none;justify-content:flex-start;"><i class="fas fa-magnifying-glass-chart" style="color:var(--gold);"></i> استعلام الطلاب</a>
         </div>
       </div>
     </div>
@@ -273,6 +273,9 @@ async function loadAll() {
 
 async function doLogout() {
   await SardAPI.signOut(); sessionStorage.clear(); location.href = 'index.html';
+}
+function openReport(page) {
+  window.open(page + '?c=' + S.complexCode, '_blank');
 }
 
 // ─── TABS ───
@@ -550,7 +553,13 @@ async function openEditStudent(id) {
 }
 
 async function deleteStudent(id, name) {
-  const r = await Swal.fire({ icon:'warning', title:'حذف الطالب', html:`سيتم حذف <b>${escapeHtml(name)}</b> وجميع سجلاته.`, showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b' });
+  const r = await Swal.fire({
+    icon:'warning', title:'حذف الطالب',
+    html:`سيتم حذف <b>${escapeHtml(name)}</b> وجميع سجلاته نهائياً.`,
+    showCancelButton:true, confirmButtonText:'حذف', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b',
+    input:'text', inputPlaceholder:'اكتب "حذف" للتأكيد',
+    preConfirm: v => { if(v!=='حذف') Swal.showValidationMessage('اكتب كلمة "حذف" للتأكيد'); return v; }
+  });
   if (!r.isConfirmed) return;
   showSpinner();
   try { await SardAPI.deleteStudent(id); await loadAll(); hideSpinner(); showToast('تم الحذف','success'); }
@@ -560,34 +569,75 @@ async function deleteStudent(id, name) {
 async function openImportStudents() {
   const { value: csvText, isConfirmed } = await Swal.fire({
     title: 'استيراد من Google Sheets',
-    html: `<p style="font-family:Tajawal,sans-serif;font-size:.85rem;text-align:right;margin-bottom:12px;">الصق محتوى الجدول من Google Sheets (بدون سطر الرأس):<br><small style="color:#64748b;">ترتيب الأعمدة: هوية | اسم | مسار | حلقة | جوال ولي الأمر | جوال الطالب | الأجزاء</small></p>
-      <textarea id="csvInput" class="swal2-textarea" style="width:100%;height:160px;font-family:monospace;font-size:.8rem;direction:ltr;" placeholder="أدخل البيانات هنا..."></textarea>`,
-    confirmButtonText: 'استيراد', cancelButtonText: 'إلغاء', showCancelButton: true, confirmButtonColor: '#014979',
-    preConfirm: () => document.getElementById('csvInput').value.trim()
+    html: `
+      <p style="font-family:Tajawal,sans-serif;font-size:.85rem;text-align:right;margin-bottom:8px;">
+        الصق الصفوف مباشرة من Google Sheets (Tab-separated):<br>
+        <small style="color:#64748b;line-height:1.8;">
+          <b>ترتيب الأعمدة:</b><br>
+          هوية الطالب | اسم الطالب | المسار | الحلقة | جوال ولي الأمر | جوال الطالب | عدد الأجزاء المحفوظة
+        </small>
+      </p>
+      <textarea id="csvInput" class="swal2-textarea" style="width:100%;height:150px;font-family:monospace;font-size:.78rem;direction:ltr;" placeholder="الصق البيانات هنا..."></textarea>`,
+    confirmButtonText: 'معاينة وتأكيد', cancelButtonText: 'إلغاء',
+    showCancelButton: true, confirmButtonColor: '#014979',
+    preConfirm: () => {
+      const v = document.getElementById('csvInput').value.trim();
+      if (!v) { Swal.showValidationMessage('الصق البيانات أولاً'); return false; }
+      return v;
+    }
   });
   if (!isConfirmed || !csvText) return;
 
-  const rows = csvText.split('\n').filter(l=>l.trim());
+  // تحليل البيانات
+  const rows = csvText.split('\n').filter(l => l.trim());
   const parsed = rows.map(row => {
-    const cols = row.split('\t').map(c=>c.trim());
-    const halaqaName = cols[3] || '';
-    const halaqa = S.halaqas.find(h => h.name === halaqaName);
-    return { sid: cols[0]||'', name: cols[1]||'', track: cols[2]||'', halaqa_id: halaqa?.id||null, guardian_phone: cols[4]||'', student_phone: cols[5]||'', parts_count: Number(cols[6])||0 };
-  }).filter(r=>r.name);
+    // دعم Tab و comma
+    const sep = row.includes('\t') ? '\t' : ',';
+    const cols = row.split(sep).map(c => c.trim().replace(/^"|"$/g,''));
+    return {
+      sid:            cols[0] || '',
+      name:           cols[1] || '',
+      track:          cols[2] || '',
+      halaqa_name:    cols[3] || '',
+      guardian_phone: cols[4] || '',
+      student_phone:  cols[5] || '',
+      parts_count:    Number(cols[6]) || 0
+    };
+  }).filter(r => r.name);
 
-  if (!parsed.length) { showToast('لم يتم تحليل أي بيانات','warning'); return; }
+  if (!parsed.length) { showToast('لم يتم تحليل أي بيانات صالحة','warning'); return; }
 
-  const r = await Swal.fire({ icon:'info', title:'تأكيد الاستيراد', text:`سيتم استيراد ${parsed.length} طالب. الطلاب الموجودون سيُحدَّثون.`, showCancelButton:true, confirmButtonText:'استيراد', cancelButtonText:'إلغاء', confirmButtonColor:'#014979' });
-  if (!r.isConfirmed) return;
+  // معاينة
+  const preview = parsed.slice(0,3).map(r =>
+    `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.halaqa_name||'—')}</td><td>${escapeHtml(r.track||'—')}</td><td>${r.parts_count}</td></tr>`
+  ).join('');
+
+  const r2 = await Swal.fire({
+    icon: 'info',
+    title: `استيراد ${parsed.length} طالب`,
+    html: `
+      <p style="font-family:Tajawal,sans-serif;font-size:.85rem;margin-bottom:10px;">معاينة أول 3 صفوف:</p>
+      <table style="width:100%;border-collapse:collapse;font-family:Tajawal,sans-serif;font-size:.8rem;direction:rtl;">
+        <thead><tr style="background:#e8f2fb;"><th style="padding:6px;">الاسم</th><th>الحلقة</th><th>المسار</th><th>الأجزاء</th></tr></thead>
+        <tbody>${preview}</tbody>
+      </table>
+      <p style="font-family:Tajawal,sans-serif;font-size:.78rem;color:#64748b;margin-top:8px;">
+        ملاحظة: الطلاب الجدد سيُضافون. الحلقات يجب أن تكون موجودة مسبقاً في النظام.
+      </p>`,
+    showCancelButton: true, confirmButtonText: 'استيراد الآن', cancelButtonText: 'إلغاء', confirmButtonColor: '#014979'
+  });
+  if (!r2.isConfirmed) return;
 
   showSpinner('جارٍ الاستيراد...');
   try {
-    // إضافة الطلاب بالجملة
-    for (const row of parsed) {
-      await SardAPI.createStudent(S.complexId, row.halaqa_id, row).catch(()=>{});
-    }
-    await loadAll(); hideSpinner(); showSaveSuccess(`تم استيراد ${parsed.length} طالب`);
-  } catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+    const count = await SardAPI.upsertStudentsBulk(S.complexId, parsed, S.halaqas);
+    await loadAll();
+    hideSpinner();
+    showSaveSuccess(`تم استيراد ${count} طالب بنجاح ✓`);
+  } catch(e) {
+    hideSpinner();
+    showToast('خطأ في الاستيراد: ' + (e.message||e), 'error');
+  }
 }
 
 // =============================================
