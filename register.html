@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>برنامج السرد — تسجيل</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="css/sard.css"/>
+  <style>
+    .reg-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, var(--primary) 0%, #025a96 60%, #0370ba 100%); position: relative; overflow: hidden; }
+    .reg-wrap::before { content:''; position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; }
+    .reg-card { background: #fff; border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,0.25); width: 100%; max-width: 500px; overflow: hidden; position: relative; z-index: 1; }
+    .reg-header { background: var(--primary); padding: 32px; text-align: center; color: #fff; }
+    .reg-header i { font-size: 2.5rem; color: var(--gold); }
+    .reg-header h1 { font-size: 1.5rem; font-weight: 800; margin-top: 10px; }
+    .reg-header p { margin-top: 6px; opacity: .75; font-size: .9rem; }
+    .reg-body { padding: 28px; }
+    .tab-switch { display: flex; background: var(--bg); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 24px; gap: 4px; }
+    .tab-switch-btn { flex: 1; padding: 10px; border: none; border-radius: calc(var(--radius-sm) - 2px); background: transparent; font-family: 'Tajawal', sans-serif; font-size: .9rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .2s; }
+    .tab-switch-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    label.field-label { display: block; font-weight: 700; font-size: .88rem; color: var(--text); margin-bottom: 6px; margin-top: 14px; }
+    label.field-label:first-child { margin-top: 0; }
+    .step-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+    .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; border: 2px solid var(--border); color: var(--text-muted); transition: all .3s; flex-shrink: 0; }
+    .step-dot.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .step-dot.done { background: var(--success); border-color: var(--success); color: #fff; }
+    .step-line { flex: 1; height: 2px; background: var(--border); border-radius: 1px; transition: background .3s; }
+    .step-line.done { background: var(--success); }
+    .success-card { text-align: center; padding: 20px 0; }
+    .success-icon { width: 72px; height: 72px; border-radius: 50%; background: #d1fae5; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 2rem; color: var(--success); }
+    .link-box { background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+    .link-box input { flex: 1; border: none; background: transparent; font-family: 'Tajawal', sans-serif; font-size: .88rem; color: var(--primary); font-weight: 600; direction: ltr; text-align: left; }
+    .link-box input:focus { outline: none; }
+  </style>
+</head>
+<body>
+
+<div id="spinner" class="spinner-overlay" style="display:none;">
+  <div class="spinner-box">
+    <div class="spinner-border text-primary" style="width:48px;height:48px;border-width:4px;--bs-primary:#014979;"></div>
+    <p>جارٍ المعالجة...</p>
+  </div>
+</div>
+
+<div class="reg-wrap">
+  <div class="reg-card animate-in">
+    <div class="reg-header">
+      <i class="fas fa-quran"></i>
+      <h1>برنامج السرد</h1>
+      <p>انضم أو أنشئ مجمعك</p>
+    </div>
+    <div class="reg-body">
+
+      <!-- تبديل تسجيل / دخول -->
+      <div class="tab-switch" id="mainTabs">
+        <button class="tab-switch-btn active" onclick="switchTab('join')">الانضمام لمجمع</button>
+        <button class="tab-switch-btn" onclick="switchTab('create')">إنشاء مجمع جديد</button>
+      </div>
+
+      <!-- ══════ انضمام لمجمع ══════ -->
+      <div id="tabJoin">
+        <label class="field-label">رمز المجمع</label>
+        <input type="text" id="joinCode" class="form-control" placeholder="أدخل رمز المجمع..." style="text-transform:uppercase;direction:ltr;"/>
+
+        <label class="field-label">اسمك الثنائي</label>
+        <input type="text" id="joinName" class="form-control" placeholder="مثال: محمد عبدالله"/>
+
+        <label class="field-label">البريد الإلكتروني</label>
+        <input type="email" id="joinEmail" class="form-control" placeholder="example@email.com" style="direction:ltr;"/>
+
+        <label class="field-label">كلمة المرور</label>
+        <input type="password" id="joinPassword" class="form-control" placeholder="٦ أحرف على الأقل"/>
+
+        <label class="field-label">رقم الجوال (اختياري)</label>
+        <input type="tel" id="joinPhone" class="form-control" placeholder="05xxxxxxxx"/>
+
+        <button class="btn-primary-sard w-100 mt-3" onclick="doJoin()" style="justify-content:center;">
+          <i class="fas fa-user-plus"></i> تقديم طلب الانضمام
+        </button>
+        <p class="text-muted text-center mt-3" style="font-size:.82rem;">لديك حساب؟ <a href="index.html" style="color:var(--primary);font-weight:700;">دخول مباشر</a></p>
+      </div>
+
+      <!-- ══════ إنشاء مجمع ══════ -->
+      <div id="tabCreate" style="display:none;">
+        <div class="step-indicator" id="stepIndicator">
+          <div class="step-dot active" id="dot1">1</div>
+          <div class="step-line" id="line12"></div>
+          <div class="step-dot" id="dot2">2</div>
+          <div class="step-line" id="line23"></div>
+          <div class="step-dot" id="dot3"><i class="fas fa-check" style="font-size:.7rem;"></i></div>
+        </div>
+
+        <!-- الخطوة 1: بيانات المجمع -->
+        <div id="createStep1">
+          <label class="field-label">اسم المجمع</label>
+          <input type="text" id="complexName" class="form-control" placeholder="مثال: مجمع الرحمة لتحفيظ القرآن"/>
+
+          <label class="field-label">رمز المجمع (سيكون جزء من الرابط)</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="complexCode" class="form-control" placeholder="مثال: RAHMA" style="text-transform:uppercase;direction:ltr;flex:1;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+            <button class="btn-outline-sard" onclick="checkCodeAvailable()" style="white-space:nowrap;padding:10px 14px;"><i class="fas fa-search"></i> تحقق</button>
+          </div>
+          <p class="text-muted" style="font-size:.78rem;margin-top:4px;">٣-١٠ أحرف إنجليزية وأرقام فقط</p>
+          <div id="codeStatus" style="margin-top:4px;"></div>
+
+          <button class="btn-primary-sard w-100 mt-3" onclick="goStep2()" style="justify-content:center;">
+            التالي <i class="fas fa-arrow-left"></i>
+          </button>
+        </div>
+
+        <!-- الخطوة 2: بيانات المشرف -->
+        <div id="createStep2" style="display:none;">
+          <label class="field-label">اسمك (المشرف)</label>
+          <input type="text" id="supervisorName" class="form-control" placeholder="اسمك الثنائي"/>
+
+          <label class="field-label">البريد الإلكتروني</label>
+          <input type="email" id="supervisorEmail" class="form-control" placeholder="example@email.com" style="direction:ltr;"/>
+
+          <label class="field-label">كلمة المرور</label>
+          <input type="password" id="supervisorPassword" class="form-control" placeholder="٦ أحرف على الأقل"/>
+
+          <label class="field-label">رقم الجوال (اختياري)</label>
+          <input type="tel" id="supervisorPhone" class="form-control" placeholder="05xxxxxxxx"/>
+
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn-outline-sard" onclick="goStep(1)" style="flex:1;justify-content:center;"><i class="fas fa-arrow-right"></i> السابق</button>
+            <button class="btn-primary-sard" onclick="doCreateComplex()" style="flex:2;justify-content:center;"><i class="fas fa-plus-circle"></i> إنشاء المجمع</button>
+          </div>
+        </div>
+
+        <!-- الخطوة 3: النجاح -->
+        <div id="createStep3" style="display:none;" class="success-card">
+          <div class="success-icon"><i class="fas fa-check"></i></div>
+          <h3 style="font-weight:800;color:var(--success);margin-bottom:8px;">تم إنشاء المجمع!</h3>
+          <p class="text-muted" style="font-size:.88rem;margin-bottom:16px;">رابط المجمع الخاص بك:</p>
+          <div class="link-box">
+            <input type="text" id="generatedLink" readonly/>
+            <button onclick="copyLink()" class="btn-outline-sard" style="padding:8px 12px;"><i class="fas fa-copy"></i></button>
+          </div>
+          <p class="text-muted" style="font-size:.8rem;margin-bottom:20px;">شارك هذا الرابط مع المسمّعين للانضمام للمجمع</p>
+          <a id="goToAppLink" href="#" class="btn-primary-sard" style="text-decoration:none;justify-content:center;display:inline-flex;width:100%;">
+            <i class="fas fa-sign-in-alt"></i> الدخول للنظام
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+let _currentStep = 1;
+let _createdComplex = null;
+
+function switchTab(tab) {
+  const isJoin = tab === 'join';
+  document.getElementById('tabJoin').style.display   = isJoin ? 'block' : 'none';
+  document.getElementById('tabCreate').style.display = isJoin ? 'none'  : 'block';
+  document.querySelectorAll('.tab-switch-btn').forEach((b,i)=>b.classList.toggle('active', (i===0)===isJoin));
+}
+
+// ─── التحقق من رمز المجمع ───
+async function checkCodeAvailable() {
+  const code = document.getElementById('complexCode').value.trim().toUpperCase();
+  const status = document.getElementById('codeStatus');
+  if (code.length < 3 || code.length > 10) { status.innerHTML = '<span style="color:var(--warning);font-size:.82rem;">الرمز يجب أن يكون بين ٣-١٠ أحرف</span>'; return; }
+  status.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">جارٍ التحقق...</span>';
+  try {
+    await SardAPI.getComplexByCode(code);
+    status.innerHTML = '<span style="color:var(--danger);font-size:.82rem;"><i class="fas fa-times-circle"></i> هذا الرمز مستخدم، جرّب رمزاً آخر</span>';
+  } catch {
+    status.innerHTML = '<span style="color:var(--success);font-size:.82rem;"><i class="fas fa-check-circle"></i> الرمز متاح!</span>';
+  }
+}
+
+function goStep(n) {
+  [1,2,3].forEach(i => document.getElementById('createStep'+i).style.display = i===n?'block':'none');
+  [1,2,3].forEach(i => { const d=document.getElementById('dot'+i); d.className='step-dot'+(i<n?' done':i===n?' active':''); });
+  if(document.getElementById('line12')) document.getElementById('line12').className='step-line'+(n>1?' done':'');
+  if(document.getElementById('line23')) document.getElementById('line23').className='step-line'+(n>2?' done':'');
+  _currentStep = n;
+}
+
+function goStep2() {
+  const name = document.getElementById('complexName').value.trim();
+  const code = document.getElementById('complexCode').value.trim().toUpperCase();
+  if (!name) { showToast('أدخل اسم المجمع','warning'); return; }
+  if (code.length < 3) { showToast('الرمز يجب ٣ أحرف على الأقل','warning'); return; }
+  goStep(2);
+}
+
+// ─── إنشاء المجمع ───
+async function doCreateComplex() {
+  const name     = document.getElementById('complexName').value.trim();
+  const code     = document.getElementById('complexCode').value.trim().toUpperCase();
+  const supName  = document.getElementById('supervisorName').value.trim();
+  const email    = document.getElementById('supervisorEmail').value.trim();
+  const password = document.getElementById('supervisorPassword').value;
+  const phone    = document.getElementById('supervisorPhone').value.trim();
+
+  if (!supName || !email || !password) { showToast('أكمل جميع الحقول المطلوبة','warning'); return; }
+  if (password.length < 6) { showToast('كلمة المرور ٦ أحرف على الأقل','warning'); return; }
+
+  showSpinner('جارٍ إنشاء المجمع...');
+  try {
+    // 1. إنشاء المجمع
+    const complex = await SardAPI.createComplex(name, code);
+
+    // 2. تسجيل المشرف
+    const auth = await SardAPI.signUp(email, password, { name: supName, role: 'supervisor', complex_id: complex.id });
+
+    // 3. إنشاء profile للمشرف (active مباشرة)
+    await _sb.from('users').insert({
+      id: auth.user.id,
+      complex_id: complex.id,
+      name: supName,
+      role: 'supervisor',
+      phone,
+      status: 'active'
+    });
+
+    _createdComplex = complex;
+    const link = location.origin + '/index.html?c=' + code;
+    document.getElementById('generatedLink').value = link;
+    document.getElementById('goToAppLink').href = link;
+
+    hideSpinner();
+    goStep(3);
+  } catch(e) {
+    hideSpinner();
+    showToast('خطأ: ' + (e.message || e), 'error');
+  }
+}
+
+// ─── الانضمام لمجمع ───
+async function doJoin() {
+  const code     = document.getElementById('joinCode').value.trim().toUpperCase();
+  const name     = document.getElementById('joinName').value.trim();
+  const email    = document.getElementById('joinEmail').value.trim();
+  const password = document.getElementById('joinPassword').value;
+  const phone    = document.getElementById('joinPhone').value.trim();
+
+  if (!code || !name || !email || !password) { showToast('أكمل جميع الحقول المطلوبة','warning'); return; }
+  if (password.length < 6) { showToast('كلمة المرور ٦ أحرف على الأقل','warning'); return; }
+
+  showSpinner('جارٍ التسجيل...');
+  try {
+    // التحقق من وجود المجمع
+    const complex = await SardAPI.getComplexByCode(code);
+
+    // تسجيل المستخدم
+    const auth = await SardAPI.signUp(email, password, { name, complex_id: complex.id });
+
+    // الحصول على إعدادات المجمع لمعرفة وضع القبول
+    const settings = await SardAPI.getSettings(complex.id);
+    const autoAccept = settings?.registration_mode === 'auto';
+
+    // إنشاء profile
+    await _sb.from('users').insert({
+      id: auth.user.id,
+      complex_id: complex.id,
+      name,
+      role: 'reciter',
+      phone,
+      status: autoAccept ? 'active' : 'pending'
+    });
+
+    hideSpinner();
+    if (autoAccept) {
+      await Swal.fire({ icon:'success', title:'تم التسجيل!', text:'يمكنك الدخول للنظام الآن.', confirmButtonColor:'#014979' });
+      location.href = 'index.html?c=' + code;
+    } else {
+      await Swal.fire({ icon:'info', title:'تم إرسال الطلب', text:'سيتم مراجعة طلبك من قبل مشرف المجمع وإشعارك عند القبول.', confirmButtonColor:'#014979' });
+      location.href = 'index.html?c=' + code;
+    }
+  } catch(e) {
+    hideSpinner();
+    showToast('خطأ: ' + (e.message || e), 'error');
+  }
+}
+
+function copyLink() {
+  const val = document.getElementById('generatedLink').value;
+  navigator.clipboard.writeText(val).then(() => showToast('تم النسخ!','success')).catch(() => showToast('يرجى النسخ يدوياً','warning'));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لوحة السوبر أدمن</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="css/sard.css"/>
+  <style>
+    .page-wrap { padding: 20px; max-width: 1200px; margin: auto; padding-bottom: 40px; }
+    .complex-card { background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:18px;transition:transform .2s,box-shadow .2s; }
+    .complex-card:hover { transform:translateY(-2px);box-shadow:var(--shadow-md); }
+    .complex-code { font-family:monospace;background:var(--primary-lt);color:var(--primary);padding:3px 10px;border-radius:6px;font-size:.85rem;font-weight:700;direction:ltr;display:inline-block; }
+    .stats-row { display:flex;gap:16px;flex-wrap:wrap;margin-top:10px; }
+    .stat-mini { display:flex;align-items:center;gap:5px;font-size:.8rem;color:var(--text-muted); }
+    .stat-mini b { color:var(--text); }
+    .kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px; }
+    @media(max-width:640px) { .kpi-grid { grid-template-columns:1fr 1fr; } }
+    .sa-login-wrap { min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary),#025a96); }
+  </style>
+</head>
+<body>
+
+<div id="spinner" class="spinner-overlay">
+  <div class="spinner-box">
+    <div class="spinner-border text-primary" style="width:48px;height:48px;border-width:4px;--bs-primary:#014979;"></div>
+    <p>جارٍ التحميل...</p>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginWrap" class="sa-login-wrap" style="display:none;">
+  <div class="login-card animate-in" style="max-width:400px;">
+    <div class="login-header">
+      <i class="fas fa-shield-halved" style="font-size:2.5rem;color:var(--gold);"></i>
+      <h1>لوحة السوبر أدمن</h1>
+      <p style="opacity:.7;font-size:.88rem;">للإدارة العليا فقط</p>
+    </div>
+    <div class="login-body">
+      <label class="d-block fw-bold" style="margin-bottom:6px;font-size:.88rem;">البريد الإلكتروني</label>
+      <input type="email" id="saEmail" class="form-control" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')saLogin()"/>
+      <label class="d-block fw-bold" style="margin-bottom:6px;font-size:.88rem;">كلمة المرور</label>
+      <input type="password" id="saPassword" class="form-control" onkeydown="if(event.key==='Enter')saLogin()"/>
+      <button class="btn-primary-sard w-100 mt-3" onclick="saLogin()" style="justify-content:center;"><i class="fas fa-sign-in-alt"></i> دخول</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appWrap" style="display:none;">
+  <nav class="navbar-sard">
+    <div class="navbar-brand">
+      <i class="fas fa-shield-halved"></i>
+      <span>السوبر أدمن</span>
+    </div>
+    <div class="nav-links">
+      <button class="nav-link-btn active" onclick="showTab('dashboard')" id="nt-dashboard"><i class="fas fa-gauge"></i> لوحة التحكم</button>
+      <button class="nav-link-btn" onclick="showTab('complexes')" id="nt-complexes"><i class="fas fa-building"></i> المجمعات</button>
+      <button class="nav-link-btn" onclick="showTab('users')" id="nt-users"><i class="fas fa-users"></i> المستخدمون</button>
+    </div>
+    <div class="d-flex align-center gap-2">
+      <span id="navUser" style="font-size:.85rem;color:rgba(255,255,255,.8);"></span>
+      <button onclick="saLogout()" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1rem;"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content">
+      <div class="kpi-grid" id="dashKpis"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card-sard">
+          <div class="card-title"><i class="fas fa-building" style="color:var(--gold);"></i> المجمعات الأخيرة</div>
+          <div id="recentComplexes"></div>
+        </div>
+        <div class="card-sard">
+          <div class="card-title"><i class="fas fa-user-clock" style="color:var(--primary);"></i> طلبات الانضمام الحديثة</div>
+          <div id="recentPending"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPLEXES -->
+    <div id="tab-complexes" class="tab-content" style="display:none;">
+      <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
+        <h2 style="font-size:1.1rem;font-weight:800;color:var(--primary);"><i class="fas fa-building" style="color:var(--gold);"></i> إدارة المجمعات</h2>
+        <button class="btn-primary-sard" onclick="openCreateComplex()"><i class="fas fa-plus"></i> مجمع جديد</button>
+      </div>
+      <div id="complexesList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;"></div>
+    </div>
+
+    <!-- USERS -->
+    <div id="tab-users" class="tab-content" style="display:none;">
+      <div class="card-sard">
+        <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:16px;">
+          <div class="card-title" style="margin-bottom:0;"><i class="fas fa-users"></i> كل المستخدمين</div>
+          <div class="d-flex gap-2 align-center">
+            <select id="userRoleFilter" class="form-control" style="width:140px;" onchange="renderAllUsers()">
+              <option value="">كل الأدوار</option>
+              <option value="superadmin">سوبر أدمن</option>
+              <option value="supervisor">مشرف</option>
+              <option value="reciter">مسمّع</option>
+            </select>
+            <select id="userStatusFilter" class="form-control" style="width:140px;" onchange="renderAllUsers()">
+              <option value="">كل الحالات</option>
+              <option value="active">نشط</option>
+              <option value="pending">معلق</option>
+              <option value="rejected">مرفوض</option>
+            </select>
+            <input type="text" id="userSearch" class="form-control" style="width:180px;" placeholder="بحث..." oninput="renderAllUsers()"/>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>الاسم</th><th>المجمع</th><th>الدور</th><th>الحالة</th><th>الجوال</th><th></th></tr></thead>
+            <tbody id="allUsersList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script>
+const S = { user:null, complexes:[], users:[] };
+
+window.addEventListener('load', async () => {
+  showSpinner();
+  const session = await SardAPI.getSession();
+  if (!session) { hideSpinner(); document.getElementById('loginWrap').style.display='flex'; return; }
+  const profile = await SardAPI.getCurrentUser();
+  if (!profile || profile.role !== 'superadmin') {
+    hideSpinner();
+    showToast('غير مصرح لك بالدخول — يحتاج دور superadmin','error');
+    await SardAPI.signOut();
+    document.getElementById('loginWrap').style.display='flex';
+    return;
+  }
+  S.user = profile;
+  document.getElementById('navUser').textContent = profile.name || '';
+  await loadAll();
+  hideSpinner();
+  document.getElementById('appWrap').style.display='block';
+});
+
+async function saLogin() {
+  const email = document.getElementById('saEmail').value.trim();
+  const pass  = document.getElementById('saPassword').value;
+  if (!email || !pass) { showToast('أدخل البريد وكلمة المرور','warning'); return; }
+  showSpinner();
+  try {
+    await SardAPI.signIn(email, pass);
+    location.reload();
+  } catch(e) { hideSpinner(); showToast('خطأ: '+(e.message||e),'error'); }
+}
+
+async function saLogout() {
+  await SardAPI.signOut(); location.reload();
+}
+
+async function loadAll() {
+  const [complexes, users] = await Promise.all([
+    SardAPI.getComplexes(),
+    SardAPI.getAllUsers()
+  ]);
+  S.complexes = complexes;
+  S.users = users;
+  renderDashboard();
+  renderComplexes();
+  renderAllUsers();
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+  document.getElementById('tab-'+id).style.display='block';
+  document.querySelectorAll('.nav-link-btn').forEach(b=>b.classList.remove('active'));
+  const nb=document.getElementById('nt-'+id); if(nb)nb.classList.add('active');
+}
+
+// ─── DASHBOARD ───
+function renderDashboard() {
+  const totalUsers    = S.users.length;
+  const activeUsers   = S.users.filter(u=>u.status==='active').length;
+  const pendingUsers  = S.users.filter(u=>u.status==='pending').length;
+  const totalComplex  = S.complexes.length;
+
+  document.getElementById('dashKpis').innerHTML =
+    `<div class="kpi-card animate-in"><div class="kpi-label">المجمعات</div><div class="kpi-value">${totalComplex}</div><i class="fas fa-building bg-icon-float"></i></div>
+     <div class="kpi-card animate-in"><div class="kpi-label">إجمالي المستخدمين</div><div class="kpi-value">${totalUsers}</div><i class="fas fa-users bg-icon-float"></i></div>
+     <div class="kpi-card animate-in"><div class="kpi-label">المستخدمون النشطون</div><div class="kpi-value green">${activeUsers}</div><i class="fas fa-user-check bg-icon-float"></i></div>
+     <div class="kpi-card animate-in"><div class="kpi-label">طلبات معلقة</div><div class="kpi-value ${pendingUsers?'red':''}">${pendingUsers}</div><i class="fas fa-user-clock bg-icon-float"></i></div>`;
+
+  // أحدث 5 مجمعات
+  const rc = document.getElementById('recentComplexes');
+  rc.innerHTML = S.complexes.slice(0,5).map(c=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div class="fw-bold">${escapeHtml(c.name)}</div>
+        <span class="complex-code">${escapeHtml(c.code)}</span>
+      </div>
+      <a href="index.html?c=${encodeURIComponent(c.code)}" target="_blank" class="btn-outline-sard" style="padding:5px 12px;font-size:.78rem;text-decoration:none;"><i class="fas fa-external-link-alt"></i> فتح</a>
+    </div>`).join('') || '<p class="text-muted text-center" style="padding:20px;">لا توجد مجمعات</p>';
+
+  // أحدث الطلبات المعلقة
+  const pending = S.users.filter(u=>u.status==='pending').slice(0,5);
+  const rp = document.getElementById('recentPending');
+  rp.innerHTML = pending.length ? pending.map(u=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:10px;">
+      <div>
+        <div class="fw-bold" style="font-size:.9rem;">${escapeHtml(u.name||'')}</div>
+        <div class="text-muted" style="font-size:.75rem;">${escapeHtml(u.complexes?.name||u.complex_id||'—')}</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn-success-sard" style="padding:5px 10px;font-size:.78rem;" onclick="approveUser('${u.id}')"><i class="fas fa-check"></i></button>
+        <button class="btn-danger-sard" style="padding:5px 10px;font-size:.78rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-times"></i></button>
+      </div>
+    </div>`).join('')
+    : '<p class="text-muted text-center" style="padding:20px;">لا توجد طلبات معلقة ✓</p>';
+}
+
+// ─── COMPLEXES ───
+function renderComplexes() {
+  const el = document.getElementById('complexesList');
+  if (!S.complexes.length) { el.innerHTML='<div class="empty-state"><i class="fas fa-building"></i><p>لا توجد مجمعات بعد</p></div>'; return; }
+  el.innerHTML = S.complexes.map(c => {
+    const cUsers = S.users.filter(u=>u.complex_id===c.id);
+    const active = cUsers.filter(u=>u.status==='active').length;
+    const pending = cUsers.filter(u=>u.status==='pending').length;
+    return `<div class="complex-card animate-in">
+      <div class="d-flex justify-between align-center" style="margin-bottom:10px;">
+        <div>
+          <div class="fw-bold" style="font-size:1rem;">${escapeHtml(c.name)}</div>
+          <span class="complex-code">${escapeHtml(c.code)}</span>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="supervisor.html?c=${encodeURIComponent(c.code)}" target="_blank" class="btn-outline-sard" style="padding:5px 12px;font-size:.78rem;text-decoration:none;" title="فتح لوحة المشرف"><i class="fas fa-shield-halved"></i></a>
+          <a href="index.html?c=${encodeURIComponent(c.code)}" target="_blank" class="btn-outline-sard" style="padding:5px 12px;font-size:.78rem;text-decoration:none;" title="فتح التطبيق"><i class="fas fa-external-link-alt"></i></a>
+          <button class="btn-danger-sard" style="padding:5px 10px;font-size:.78rem;" onclick="deleteComplex('${c.id}','${c.name.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-mini"><i class="fas fa-users" style="color:var(--primary);"></i> <b>${cUsers.length}</b> مستخدم</div>
+        <div class="stat-mini"><i class="fas fa-check-circle" style="color:var(--success);"></i> <b>${active}</b> نشط</div>
+        ${pending?`<div class="stat-mini"><i class="fas fa-clock" style="color:var(--warning);"></i> <b>${pending}</b> معلق</div>`:''}
+      </div>
+      <div class="mt-3">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span class="text-muted" style="font-size:.78rem;">رابط الانضمام</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <input type="text" value="${location.origin}/index.html?c=${encodeURIComponent(c.code)}" readonly class="form-control" style="font-size:.75rem;direction:ltr;"/>
+          <button class="btn-outline-sard" style="padding:8px 10px;" onclick="copyText('${location.origin}/index.html?c=${encodeURIComponent(c.code)}')"><i class="fas fa-copy"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(()=>showToast('تم النسخ','success')).catch(()=>showToast('يرجى النسخ يدوياً','warning'));
+}
+
+async function openCreateComplex() {
+  const { value, isConfirmed } = await Swal.fire({
+    title:'مجمع جديد',
+    html:`<div style="text-align:right;font-family:Tajawal,sans-serif;">
+      <label style="display:block;font-size:.85rem;font-weight:700;margin-bottom:6px;">اسم المجمع *</label>
+      <input id="cxName" class="swal2-input" style="margin:0 0 12px;width:100%;" placeholder="اسم المجمع"/>
+      <label style="display:block;font-size:.85rem;font-weight:700;margin-bottom:6px;">الرمز (حروف وأرقام إنجليزية) *</label>
+      <input id="cxCode" class="swal2-input" style="margin:0;width:100%;direction:ltr;text-transform:uppercase;" placeholder="مثال: RAHMA"/>
+    </div>`,
+    confirmButtonText:'إنشاء', cancelButtonText:'إلغاء', showCancelButton:true, confirmButtonColor:'#014979',
+    preConfirm: () => ({
+      name: document.getElementById('cxName').value.trim(),
+      code: document.getElementById('cxCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'')
+    })
+  });
+  if (!isConfirmed || !value?.name || !value?.code) return;
+  showSpinner();
+  try {
+    await SardAPI.createComplex(value.name, value.code);
+    await loadAll();
+    hideSpinner(); showSaveSuccess('تم إنشاء المجمع');
+  } catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+}
+
+async function deleteComplex(id, name) {
+  const r = await Swal.fire({ icon:'warning', title:'حذف المجمع', html:`سيتم حذف <b>${escapeHtml(name)}</b> وجميع بياناته نهائياً!`, showCancelButton:true, confirmButtonText:'حذف نهائياً', cancelButtonText:'إلغاء', confirmButtonColor:'#c0392b', input:'text', inputPlaceholder:'اكتب "حذف" للتأكيد', preConfirm: v => { if (v !== 'حذف') Swal.showValidationMessage('اكتب "حذف" للتأكيد'); return v; } });
+  if (!r.isConfirmed) return;
+  showSpinner();
+  try { await SardAPI.deleteComplex(id); await loadAll(); hideSpinner(); showToast('تم الحذف','success'); }
+  catch(e) { hideSpinner(); showToast('خطأ: '+e.message,'error'); }
+}
+
+// ─── USERS ───
+function renderAllUsers() {
+  const role   = document.getElementById('userRoleFilter').value;
+  const status = document.getElementById('userStatusFilter').value;
+  const q      = (document.getElementById('userSearch').value||'').toLowerCase();
+
+  let list = S.users.filter(u => {
+    if (role && u.role !== role) return false;
+    if (status && u.status !== status) return false;
+    if (q && !(u.name||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('allUsersList');
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="6" class="text-muted text-center" style="padding:20px;">لا يوجد مستخدمون</td></tr>'; return; }
+
+  const roleMap = {superadmin:'سوبر أدمن',supervisor:'مشرف',reciter:'مسمّع'};
+  const statusMap = {active:'نشط',pending:'معلق',rejected:'مرفوض'};
+
+  tbody.innerHTML = list.map(u => {
+    const complexName = u.complexes?.name || '—';
+    return `<tr>
+      <td class="fw-bold">${escapeHtml(u.name||'')}</td>
+      <td class="text-muted">${escapeHtml(complexName)}</td>
+      <td><span class="role-badge role-${u.role}">${roleMap[u.role]||u.role}</span></td>
+      <td><span class="status-badge status-${u.status}">${statusMap[u.status]||u.status}</span></td>
+      <td class="text-muted">${escapeHtml(u.phone||'—')}</td>
+      <td>
+        <div class="d-flex gap-1">
+          ${u.status==='pending'?`<button class="btn-success-sard" style="padding:4px 10px;font-size:.78rem;" onclick="approveUser('${u.id}')"><i class="fas fa-check"></i></button>`:''}
+          ${u.status!=='rejected'&&u.role!=='superadmin'?`<button class="btn-danger-sard" style="padding:4px 10px;font-size:.78rem;" onclick="rejectUser('${u.id}')"><i class="fas fa-ban"></i></button>`:''}
+          ${u.role!=='superadmin'?`<button class="btn-outline-sard" style="padding:4px 10px;font-size:.78rem;" onclick="promoteToSupervisor('${u.id}','${u.role}')"><i class="fas fa-user-cog"></i></button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function approveUser(id) {
+  await SardAPI.updateUserStatus(id,'active');
+  const u=S.users.find(u=>u.id===id);if(u)u.status='active';
+  renderDashboard();renderAllUsers();showSaveSuccess('تم القبول');
+}
+async function rejectUser(id) {
+  await SardAPI.updateUserStatus(id,'rejected');
+  const u=S.users.find(u=>u.id===id);if(u)u.status='rejected';
+  renderDashboard();renderAllUsers();showToast('تم الرفض','success');
+}
+async function promoteToSupervisor(id, currentRole) {
+  const newRole = currentRole==='supervisor'?'reciter':'supervisor';
+  const label = newRole==='supervisor'?'ترقية إلى مشرف':'تغيير إلى مسمّع';
+  const r = await Swal.fire({icon:'question',title:label,showCancelButton:true,confirmButtonText:'تأكيد',cancelButtonText:'إلغاء',confirmButtonColor:'#014979'});
+  if (!r.isConfirmed) return;
+  await SardAPI.updateUserRole(id, newRole);
+  const u=S.users.find(u=>u.id===id);if(u)u.role=newRole;
+  renderAllUsers();showSaveSuccess('تم التغيير');
+}
+</script>
+</body>
+</html>
