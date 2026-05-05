@@ -170,6 +170,9 @@ async function loadAll() {
     SardAPI.getComplexes(),
     SardAPI.getAllUsers()
   ]);
+  // جلب settings لكل مجمع لمعرفة وضع القبول
+  const settingsArr = await Promise.all(complexes.map(c => SardAPI.getSettings(c.id).catch(()=>{})));
+  complexes.forEach((c,i) => { c._regMode = settingsArr[i]?.registration_mode || 'auto'; });
   S.complexes = complexes;
   S.users = users;
   renderDashboard();
@@ -250,6 +253,14 @@ function renderComplexes() {
         <div class="stat-mini"><i class="fas fa-check-circle" style="color:var(--success);"></i> <b>${active}</b> نشط</div>
         ${pending?`<div class="stat-mini"><i class="fas fa-clock" style="color:var(--warning);"></i> <b>${pending}</b> معلق</div>`:''}
       </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+        <span class="text-muted" style="font-size:.78rem;">القبول:</span>
+        <select onchange="changeComplexRegMode('${c.id}',this.value)" class="form-control" style="width:110px;padding:4px 8px;font-size:.78rem;height:auto;" data-complex="${c.id}">
+          <option value="auto" ${!c._regMode||c._regMode==='auto'?'selected':''}>تلقائي</option>
+          <option value="manual" ${c._regMode==='manual'?'selected':''}>يدوي</option>
+        </select>
+        ${pending?`<a href="supervisor.html?c=${encodeURIComponent(c.code)}" target="_blank" class="badge-sard badge-fail" style="text-decoration:none;cursor:pointer;">${pending} معلق</a>`:''}
+      </div>
       <div class="mt-3">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
           <span class="text-muted" style="font-size:.78rem;">رابط الانضمام</span>
@@ -261,6 +272,15 @@ function renderComplexes() {
       </div>
     </div>`;
   }).join('');
+}
+
+async function changeComplexRegMode(complexId, mode) {
+  try {
+    await SardAPI.saveSettings(complexId, { registration_mode: mode });
+    showSaveSuccess('تم تغيير وضع القبول');
+  } catch(e) {
+    showToast('خطأ: ' + e.message, 'error');
+  }
 }
 
 function copyText(txt) {
