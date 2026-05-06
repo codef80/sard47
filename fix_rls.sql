@@ -70,9 +70,8 @@ CREATE POLICY "st_update" ON settings FOR UPDATE
     OR get_my_role() = 'superadmin'
   );
 
--- ── 8. Halaqas ──
-CREATE POLICY "hq_select" ON halaqas FOR SELECT
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
+-- ── 8. Halaqas (قراءة عامة للمسمّعين الزائرين) ──
+CREATE POLICY "hq_select" ON halaqas FOR SELECT USING (true);
 CREATE POLICY "hq_insert" ON halaqas FOR INSERT
   WITH CHECK (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 CREATE POLICY "hq_update" ON halaqas FOR UPDATE
@@ -80,9 +79,8 @@ CREATE POLICY "hq_update" ON halaqas FOR UPDATE
 CREATE POLICY "hq_delete" ON halaqas FOR DELETE
   USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 
--- ── 9. Students ──
-CREATE POLICY "stu_select" ON students FOR SELECT
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
+-- ── 9. Students (قراءة عامة) ──
+CREATE POLICY "stu_select" ON students FOR SELECT USING (true);
 CREATE POLICY "stu_insert" ON students FOR INSERT
   WITH CHECK (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 CREATE POLICY "stu_update" ON students FOR UPDATE
@@ -91,8 +89,7 @@ CREATE POLICY "stu_delete" ON students FOR DELETE
   USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 
 -- ── 10. Track Configs ──
-CREATE POLICY "tc_select" ON track_configs FOR SELECT
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
+CREATE POLICY "tc_select" ON track_configs FOR SELECT USING (true);
 CREATE POLICY "tc_insert" ON track_configs FOR INSERT
   WITH CHECK (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 CREATE POLICY "tc_update" ON track_configs FOR UPDATE
@@ -100,9 +97,8 @@ CREATE POLICY "tc_update" ON track_configs FOR UPDATE
 CREATE POLICY "tc_delete" ON track_configs FOR DELETE
   USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 
--- ── 11. Records ──
-CREATE POLICY "rec_select" ON records FOR SELECT
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
+-- ── 11. Records (قراءة عامة - المسمّع يحتاج يرى السجلات) ──
+CREATE POLICY "rec_select" ON records FOR SELECT USING (true);
 CREATE POLICY "rec_insert" ON records FOR INSERT
   WITH CHECK (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 CREATE POLICY "rec_update" ON records FOR UPDATE

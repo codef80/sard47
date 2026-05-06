@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
   <link rel="stylesheet" href="css/sard.css"/>
   <style>
     body{background:var(--bg);}
@@ -245,29 +247,55 @@
 
       <!-- ════ الحضور ════ -->
       <div class="tab-pane" id="pane-attendance">
-        <div class="card-sard">
-          <div class="card-title"><i class="fas fa-clipboard-check" style="color:var(--gold);"></i> تقرير الحضور</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
-            <div>
-              <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">من</label>
-              <input type="date" id="attFrom" class="form-control" style="width:160px;"/>
+
+        <!-- تبويبات: تسجيل / تقرير -->
+        <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--border);">
+          <button class="tab-btn active" id="attTab-record" onclick="switchAttTab('record')"><i class="fas fa-clipboard-check"></i> تسجيل حضور اليوم</button>
+          <button class="tab-btn" id="attTab-report" onclick="switchAttTab('report')"><i class="fas fa-chart-bar"></i> تقرير الحضور</button>
+        </div>
+
+        <!-- ─── تسجيل الحضور اليومي ─── -->
+        <div id="attPane-record">
+          <div class="card-sard">
+            <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
+              <div class="card-title" style="margin-bottom:0;"><i class="fas fa-calendar-day" style="color:var(--gold);"></i> حضور اليوم — <span id="attTodayDate" style="color:var(--text-muted);font-size:.9rem;"></span></div>
+              <button class="btn-outline-sard" onclick="refreshAttRecord()" style="padding:7px 12px;font-size:.82rem;"><i class="fas fa-sync-alt"></i> تحديث</button>
             </div>
-            <div>
-              <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">إلى</label>
-              <input type="date" id="attTo" class="form-control" style="width:160px;"/>
-            </div>
-            <div>
-              <label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">الحلقة</label>
-              <select id="attHalaqaFilter" class="form-control" style="width:160px;">
-                <option value="">كل الحلقات</option>
-              </select>
-            </div>
-            <button class="btn-primary-sard" onclick="loadAttReport()"><i class="fas fa-search"></i> عرض</button>
-            <button class="btn-outline-sard" onclick="exportAttCSV()"><i class="fas fa-file-export"></i> تصدير CSV</button>
+            <div class="grid-4" id="attHalaqaSelectGrid" style="margin-bottom:16px;"></div>
           </div>
-          <div id="attStats" style="display:none;margin-bottom:12px;"></div>
-          <div id="attResult">
-            <div class="empty-state"><i class="fas fa-calendar-check"></i><p>اختر الفترة الزمنية وانقر "عرض"</p></div>
+
+          <div class="card-sard" id="attStudentsCard" style="display:none;">
+            <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
+              <div class="card-title" style="margin-bottom:0;"><i class="fas fa-users"></i> <span id="attSelectedHalaqaName">—</span></div>
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <span id="attStudentCountBadge" class="badge-sard badge-prim"></span>
+                <button class="btn-outline-sard" onclick="markAll('present')" style="padding:7px 12px;font-size:.82rem;"><i class="fas fa-check-double"></i> تحديد الكل حاضر</button>
+                <button class="btn-outline-sard" onclick="markAll('absent')" style="padding:7px 12px;font-size:.82rem;color:var(--danger);border-color:var(--danger);"><i class="fas fa-times"></i> تحديد الكل غائب</button>
+              </div>
+            </div>
+            <div id="attStudentRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+              <button class="btn-primary-sard" onclick="doSaveAttRecord()" id="attSaveBtn"><i class="fas fa-save"></i> حفظ التحضير</button>
+              <span id="attSaveStatus" class="text-muted" style="font-size:.85rem;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── تقرير الحضور ─── -->
+        <div id="attPane-report" style="display:none;">
+          <div class="card-sard">
+            <div class="card-title"><i class="fas fa-chart-bar" style="color:var(--gold);"></i> تقرير الحضور</div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+              <div><label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">من</label><input type="date" id="attFrom" class="form-control" style="width:155px;"/></div>
+              <div><label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">إلى</label><input type="date" id="attTo" class="form-control" style="width:155px;"/></div>
+              <div><label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">الحلقة</label>
+                <select id="attHalaqaFilter" class="form-control" style="width:155px;"><option value="">كل الحلقات</option></select>
+              </div>
+              <button class="btn-primary-sard" onclick="loadAttReport()"><i class="fas fa-search"></i> عرض</button>
+              <button class="btn-outline-sard" onclick="exportAttCSV()"><i class="fas fa-file-export"></i> CSV</button>
+            </div>
+            <div id="attStats" style="display:none;margin-bottom:12px;"></div>
+            <div id="attResult"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>اختر الفترة وانقر "عرض"</p></div></div>
           </div>
         </div>
       </div>
@@ -438,8 +466,6 @@
 
 </div><!-- end sup-layout -->
 
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
 <script>
 // ═══════════════════════════════════════
 // STATE
@@ -922,6 +948,103 @@ function loadAttHalaqaFilter() {
   const sel=document.getElementById('attHalaqaFilter');
   if(!sel)return;
   sel.innerHTML='<option value="">كل الحلقات</option>'+S.halaqas.map(h=>`<option value="${h.id}">${escapeHtml(h.name)}</option>`).join('');
+  // تحديث شبكة الحلقات في التسجيل اليومي
+  renderAttHalaqaGrid();
+  // عرض تاريخ اليوم
+  const td=document.getElementById('attTodayDate');
+  if(td)td.textContent=new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+function renderAttHalaqaGrid(){
+  const grid=document.getElementById('attHalaqaSelectGrid');
+  if(!grid)return;
+  const s=STATE_ATT;
+  grid.innerHTML='';
+  const items=S.halaqas.map(h=>({id:h.id,name:h.name}));
+  if(!items.length){grid.innerHTML='<p class="text-muted" style="grid-column:1/-1;">لا توجد حلقات — أضف حلقات في قسم الطلاب والحلقات</p>';return;}
+  items.forEach(h=>{
+    const btn=document.createElement('button');
+    btn.className='sel-btn'+(STATE_ATT.halaqaId===h.id?' active':'');
+    btn.innerHTML=`<div class="fw-bold">${escapeHtml(h.name)}</div>`;
+    btn.onclick=()=>selectAttHalaqa(h.id,h.name,btn);
+    grid.appendChild(btn);
+  });
+}
+
+// STATE للتحضير اليومي
+const STATE_ATT={halaqaId:null,halaqaName:'',statuses:{}};
+
+function selectAttHalaqa(id,name,btn){
+  STATE_ATT.halaqaId=id;STATE_ATT.halaqaName=name;STATE_ATT.statuses={};
+  document.querySelectorAll('#attHalaqaSelectGrid .sel-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('attSelectedHalaqaName').textContent=name;
+  renderAttStudentRows();
+  document.getElementById('attStudentsCard').style.display='block';
+}
+
+function renderAttStudentRows(){
+  const students=S.students.filter(s=>s.halaqa_id===STATE_ATT.halaqaId);
+  document.getElementById('attStudentCountBadge').textContent=students.length+' طالب';
+  const list=document.getElementById('attStudentRows');
+  list.innerHTML='';
+  if(!students.length){list.innerHTML='<p class="text-muted text-center" style="padding:20px;">لا يوجد طلاب في هذه الحلقة</p>';return;}
+  const statuses=[{id:'present',label:'حاضر',cls:'s-present'},{id:'late',label:'متأخر',cls:'s-late'},{id:'excused',label:'معتذر',cls:'s-excused'},{id:'absent',label:'غائب',cls:'s-absent'}];
+  students.forEach(s=>{
+    if(!STATE_ATT.statuses[s.id])STATE_ATT.statuses[s.id]='';
+    const row=document.createElement('div');row.className='att-row';
+    const cur=STATE_ATT.statuses[s.id];
+    const btns=statuses.map(st=>`<button class="att-status-btn ${cur===st.id?st.cls:''}" id="sup-att-${s.id}-${st.id}" onclick="setAttSt('${jsString(s.id)}','${st.id}')">${st.label}</button>`).join('');
+    row.innerHTML=`<div class="d-flex align-center gap-2" style="flex-shrink:0;"><div class="uavatar" style="width:34px;height:34px;font-size:.85rem;">${escapeHtml((s.name||'?')[0])}</div><div><div class="fw-bold" style="font-size:.9rem;">${escapeHtml(s.name||'')}</div>${s.track?`<div class="text-muted" style="font-size:.75rem;">${escapeHtml(s.track)}</div>`:''}</div></div><div class="d-flex gap-1 flex-wrap">${btns}</div>`;
+    list.appendChild(row);
+  });
+}
+
+function setAttSt(studentId,status){
+  STATE_ATT.statuses[studentId]=status;
+  ['present','late','excused','absent'].forEach(s=>{
+    const btn=document.getElementById(`sup-att-${studentId}-${s}`);
+    if(btn){const cls={present:'s-present',late:'s-late',excused:'s-excused',absent:'s-absent'};btn.className='att-status-btn'+(s===status?' '+cls[s]:'');}
+  });
+}
+
+function markAll(status){
+  S.students.filter(s=>s.halaqa_id===STATE_ATT.halaqaId).forEach(s=>{
+    STATE_ATT.statuses[s.id]=status;setAttSt(s.id,status);
+  });
+}
+
+async function doSaveAttRecord(){
+  if(!STATE_ATT.halaqaId){showToast('اختر الحلقة أولاً','warning');return;}
+  const students=S.students.filter(s=>s.halaqa_id===STATE_ATT.halaqaId);
+  const noStatus=students.filter(s=>!STATE_ATT.statuses[s.id]);
+  if(noStatus.length){
+    const r=await Swal.fire({icon:'warning',title:'طلاب بدون حالة',html:`${noStatus.length} طالب لم يُحدَّد وضعهم. هل تريد اعتبارهم غائبين؟`,showCancelButton:true,confirmButtonText:'نعم، اعتبرهم غائبين',cancelButtonText:'إلغاء',confirmButtonColor:'#014979'});
+    if(!r.isConfirmed)return;
+    noStatus.forEach(s=>{STATE_ATT.statuses[s.id]='absent';setAttSt(s.id,'absent');});
+  }
+  const today=new Date().toISOString().split('T')[0];
+  const entries=students.map(s=>({studentId:s.id,status:STATE_ATT.statuses[s.id]||'absent'}));
+  const btn=document.getElementById('attSaveBtn');btnLoading(btn,'جارٍ الحفظ...');
+  try{
+    await SardAPI.saveAttendance(S.complexId,STATE_ATT.halaqaId,today,entries);
+    btnReset(btn);
+    document.getElementById('attSaveStatus').textContent='✓ تم الحفظ في '+new Date().toLocaleTimeString('ar-SA');
+    showSaveSuccess('تم حفظ تحضير '+entries.length+' طالب ✓');
+  }catch(e){btnReset(btn);showToast('خطأ: '+e.message,'error');}
+}
+
+async function refreshAttRecord(){
+  await loadAll();renderAttHalaqaGrid();
+  if(STATE_ATT.halaqaId){renderAttStudentRows();}
+  showToast('تم التحديث','success');
+}
+
+function switchAttTab(tab){
+  document.getElementById('attPane-record').style.display=tab==='record'?'block':'none';
+  document.getElementById('attPane-report').style.display=tab==='report'?'block':'none';
+  document.getElementById('attTab-record').className='tab-btn'+(tab==='record'?' active':'');
+  document.getElementById('attTab-report').className='tab-btn'+(tab==='report'?' active':'');
 }
 
 async function loadAttReport() {
