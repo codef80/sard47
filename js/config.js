@@ -24,7 +24,17 @@ const SEC_DECODE = Object.fromEntries(Object.entries(SEC_ENCODE).map(([k,v])=>[v
 function encodeSection(sec) {
   const out = {};
   for (const [full, short] of Object.entries(SEC_ENCODE)) {
-    if (sec[full] !== undefined) out[short] = sec[full];
+    if (sec[full] === undefined || sec[full] === null) continue;
+    let v = sec[full];
+    // ضغط التاريخ: "2026-04-20" → "260420"
+    if (full === 'date' && v && v.includes('-')) {
+      v = v.slice(2).replace(/-/g,'');  // "260420"
+    }
+    // حذف القيم الافتراضية لتوفير المساحة
+    if (full === 'mistakes' && v === 0) continue;
+    if (full === 'warnings' && v === 0) continue;
+    if (full === 'failFace' && !v) continue;
+    out[short] = v;
   }
   return out;
 }
@@ -32,8 +42,18 @@ function encodeSection(sec) {
 function decodeSection(sec) {
   const out = {};
   for (const [short, full] of Object.entries(SEC_DECODE)) {
-    if (sec[short] !== undefined) out[full] = sec[short];
+    if (sec[short] === undefined) continue;
+    let v = sec[short];
+    // فك ضغط التاريخ: "260420" → "2026-04-20"
+    if (full === 'date' && v && v.length === 6 && /^[0-9]{6}$/.test(String(v))) {
+      v = '20'+v.slice(0,2)+'-'+v.slice(2,4)+'-'+v.slice(4,6);
+    }
+    out[full] = v;
   }
+  // defaults للقيم المحذوفة
+  if (out.mistakes === undefined) out.mistakes = 0;
+  if (out.warnings === undefined) out.warnings = 0;
+  if (out.failFace === undefined) out.failFace = '';
   // fallback للمفاتيح الكاملة القديمة
   for (const key of Object.keys(SEC_ENCODE)) {
     if (sec[key] !== undefined && out[key] === undefined) out[key] = sec[key];
