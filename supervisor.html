@@ -284,18 +284,15 @@
         <!-- ─── تقرير الحضور ─── -->
         <div id="attPane-report" style="display:none;">
           <div class="card-sard">
-            <div class="card-title"><i class="fas fa-chart-bar" style="color:var(--gold);"></i> تقرير الحضور</div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
-              <div><label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">من</label><input type="date" id="attFrom" class="form-control" style="width:155px;"/></div>
-              <div><label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">إلى</label><input type="date" id="attTo" class="form-control" style="width:155px;"/></div>
-              <div><label class="text-muted" style="font-size:.82rem;display:block;margin-bottom:4px;">الحلقة</label>
+            <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
+              <div class="card-title" style="margin-bottom:0;"><i class="fas fa-chart-bar" style="color:var(--gold);"></i> تقرير حضور اليوم</div>
+              <div class="d-flex gap-2 align-center flex-wrap">
                 <select id="attHalaqaFilter" class="form-control" style="width:155px;"><option value="">كل الحلقات</option></select>
+                <button class="btn-outline-sard" onclick="exportAttCSV()"><i class="fas fa-file-export"></i> CSV</button>
               </div>
-              <button class="btn-primary-sard" onclick="loadAttReport()"><i class="fas fa-search"></i> عرض</button>
-              <button class="btn-outline-sard" onclick="exportAttCSV()"><i class="fas fa-file-export"></i> CSV</button>
             </div>
             <div id="attStats" style="display:none;margin-bottom:12px;"></div>
-            <div id="attResult"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>اختر الفترة وانقر "عرض"</p></div></div>
+            <div id="attResult"><div class="empty-state"><i class="fas fa-calendar-check"></i><p>جاري تحميل بيانات اليوم...</p></div></div>
           </div>
         </div>
       </div>
@@ -440,6 +437,15 @@
             <div class="mt-4">
               <button class="btn-primary-sard" onclick="saveRegMode()"><i class="fas fa-save"></i> حفظ</button>
             </div>
+          </div>
+
+          <div class="card-sard">
+            <div class="card-title"><i class="fas fa-user-tie"></i> بيانات المجمع</div>
+            <div class="setting-row">
+              <div><div class="setting-label">اسم مدير المجمع</div><div class="setting-desc">يُستخدم في الشهادات والتقارير الرسمية</div></div>
+              <input type="text" id="complexManagerName" class="form-control" style="width:200px;" placeholder="اسم المدير"/>
+            </div>
+            <div class="mt-3"><button class="btn-primary-sard" onclick="saveManagerName()"><i class="fas fa-save"></i> حفظ</button></div>
           </div>
 
           <div class="card-sard">
@@ -1045,13 +1051,13 @@ function switchAttTab(tab){
   document.getElementById('attPane-report').style.display=tab==='report'?'block':'none';
   document.getElementById('attTab-record').className='tab-btn'+(tab==='record'?' active':'');
   document.getElementById('attTab-report').className='tab-btn'+(tab==='report'?' active':'');
+  if(tab==='report') loadAttReport();
 }
 
 async function loadAttReport() {
-  const from=document.getElementById('attFrom').value;
-  const to=document.getElementById('attTo').value;
-  if(!from||!to){showToast('حدد الفترة الزمنية','warning');return;}
+  const today=new Date().toISOString().split('T')[0];
   const halaqaF=document.getElementById('attHalaqaFilter')?.value||'';
+  const from=today, to=today;
   showSpinner();
   try{
     let data=await SardAPI.getAttendanceReport(S.complexId,from,to);
@@ -1130,6 +1136,7 @@ function loadSettingsForm() {
   // إعدادات المجمع
   setValue('regMode', s.registration_mode||'auto');
   setValue('approvalTemplate', s.approval_whatsapp_template||'');
+  setValue('complexManagerName', s.manager_name||'');
 }
 
 function setValue(id,v){const el=document.getElementById(id);if(el)el.value=v;}
@@ -1214,6 +1221,13 @@ async function saveRegMode() {
   await SardAPI.saveSettings(S.complexId,{registration_mode:mode});
   S.settings.registration_mode=mode;
   showSaveSuccess('تم الحفظ');
+}
+
+async function saveManagerName() {
+  const name=getValue('complexManagerName').trim();
+  await SardAPI.saveSettings(S.complexId,{manager_name:name});
+  S.settings.manager_name=name;
+  showSaveSuccess('تم حفظ اسم المدير');
 }
 
 async function saveApprovalTemplate() {

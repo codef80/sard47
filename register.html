@@ -74,8 +74,8 @@
         <label class="field-label">كلمة المرور</label>
         <input type="password" id="joinPassword" class="form-control" placeholder="٦ أحرف على الأقل"/>
 
-        <label class="field-label">رقم الجوال (اختياري)</label>
-        <input type="tel" id="joinPhone" class="form-control" placeholder="05xxxxxxxx"/>
+        <label class="field-label">رقم الجوال <span style="color:var(--danger);">*</span></label>
+        <input type="tel" id="joinPhone" class="form-control" placeholder="05xxxxxxxx" required/>
 
         <button class="btn-primary-sard w-100 mt-3" onclick="doJoin()" style="justify-content:center;">
           <i class="fas fa-user-plus"></i> تقديم طلب الانضمام
@@ -122,8 +122,8 @@
           <label class="field-label">كلمة المرور</label>
           <input type="password" id="supervisorPassword" class="form-control" placeholder="٦ أحرف على الأقل"/>
 
-          <label class="field-label">رقم الجوال (اختياري)</label>
-          <input type="tel" id="supervisorPhone" class="form-control" placeholder="05xxxxxxxx"/>
+          <label class="field-label">رقم الجوال <span style="color:var(--danger);">*</span></label>
+          <input type="tel" id="supervisorPhone" class="form-control" placeholder="05xxxxxxxx" required/>
 
           <div class="d-flex gap-2 mt-3">
             <button class="btn-outline-sard" onclick="goStep(1)" style="flex:1;justify-content:center;"><i class="fas fa-arrow-right"></i> السابق</button>
@@ -203,7 +203,8 @@ async function doCreateComplex() {
   const password = document.getElementById('supervisorPassword').value;
   const phone    = document.getElementById('supervisorPhone').value.trim();
 
-  if (!supName || !email || !password) { showToast('أكمل جميع الحقول المطلوبة','warning'); return; }
+  if (!supName || !email || !password || !phone) { showToast('جميع الحقول مطلوبة بما فيها رقم الجوال','warning'); return; }
+  if (!/^05[0-9]{8}$/.test(phone.replace(/\s/g,''))) { showToast('رقم الجوال غير صحيح (مثال: 0512345678)','warning'); return; }
   if (password.length < 6) { showToast('كلمة المرور ٦ أحرف على الأقل','warning'); return; }
 
   showSpinner('جارٍ إنشاء المجمع...');
@@ -217,7 +218,7 @@ async function doCreateComplex() {
     if (!auth.user) throw new Error('فشل إنشاء الحساب');
 
     // 3. إنشاء profile المشرف (active مباشرة)
-    await SardAPI.createUserProfile(auth.user.id, supName, 'supervisor', complex.id, phone, 'active');
+    await SardAPI.createUserProfile(auth.user.id, supName, 'supervisor', complex.id, phone, 'active', email);
 
     _createdComplex = complex;
     const link = location.origin + location.pathname.replace('register.html','') + 'index.html?c=' + code;
@@ -244,7 +245,8 @@ async function doJoin() {
   const password = document.getElementById('joinPassword').value;
   const phone    = document.getElementById('joinPhone').value.trim();
 
-  if (!code || !name || !email || !password) { showToast('أكمل جميع الحقول المطلوبة','warning'); return; }
+  if (!code || !name || !email || !password || !phone) { showToast('جميع الحقول مطلوبة بما فيها رقم الجوال','warning'); return; }
+  if (!/^05[0-9]{8}$/.test(phone.replace(/\s/g,''))) { showToast('رقم الجوال غير صحيح (مثال: 0512345678)','warning'); return; }
   if (password.length < 6) { showToast('كلمة المرور ٦ أحرف على الأقل','warning'); return; }
 
   showSpinner('جارٍ التسجيل...');
@@ -261,7 +263,7 @@ async function doJoin() {
     const autoAccept = !settings || settings.registration_mode !== 'manual';
 
     // إنشاء profile
-    await SardAPI.createUserProfile(auth.user.id, name, 'reciter', complex.id, phone, autoAccept ? 'active' : 'pending');
+    await SardAPI.createUserProfile(auth.user.id, name, 'reciter', complex.id, phone, autoAccept ? 'active' : 'pending', email);
 
     hideSpinner();
 
