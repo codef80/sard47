@@ -26,9 +26,24 @@ const SardAPI = {
     return data.session;
   },
 
-  async signIn(email,password){
-    const{data,error}=await _sb.auth.signInWithPassword({email,password});
-    if(error)throw new Error(error.message==='Invalid login credentials'?'البريد أو كلمة المرور غير صحيحة':error.message);
+  async signIn(emailOrPhone,password){
+    let loginEmail=emailOrPhone.trim();
+    // إذا كان جوال: ابحث عن الإيميل المرتبط به
+    const isPhone=/^(05|5)[0-9]{7,8}$/.test(loginEmail.replace(/[\s-]/g,''));
+    if(isPhone){
+      // جلب الإيميل من جدول users عبر الـ phone
+      // ملاحظة: يحتاج RLS يسمح بقراءة phone عامة
+      const phone=loginEmail.replace(/[\s-]/g,'');
+      const{data:u}=await _sb.from('users').select('id').eq('phone',phone).single();
+      if(!u)throw new Error('رقم الجوال غير مسجل');
+      // نحتاج getUser بالـ id - لكن Supabase لا يكشف الإيميل من جدول users
+      // الحل: جدول users يخزن الإيميل أيضاً
+      const{data:authU}=await _sb.from('users').select('email').eq('phone',phone).single();
+      if(!authU||!authU.email)throw new Error('لم يتم ربط الجوال ببريد إلكتروني');
+      loginEmail=authU.email;
+    }
+    const{data,error}=await _sb.auth.signInWithPassword({email:loginEmail,password});
+    if(error)throw new Error(error.message==='Invalid login credentials'?'البريد/الجوال أو كلمة المرور غير صحيحة':error.message);
     return data;
   },
 
@@ -98,8 +113,8 @@ const SardAPI = {
     return data||[];
   },
 
-  async createUserProfile(id,name,role,complexId,phone,status='pending'){
-    const{error}=await _sb.from('users').insert({id,name,role,complex_id:complexId,phone:phone||null,status});
+  async createUserProfile(id,name,role,complexId,phone,status='pending',email=''){
+    const{error}=await _sb.from('users').insert({id,name,role,complex_id:complexId,phone:phone||null,status,email:email||''});
     if(error)throw error;
   },
 
@@ -147,10 +162,14 @@ const SardAPI = {
   },
 
   async createStudent(complexId,halaqaId,fields){
-    // تنظيف الحقول المسموحة فقط
     const allowed={sid:1,name:1,track:1,guardian_phone:1,student_phone:1,parts_count:1};
     const clean={};
-    Object.keys(fields).forEach(k=>{if(allowed[k])clean[k]=fields[k];});
+    Object.keys(fields).forEach(k=>{
+      if(!allowed[k])return;
+      // parts_count يقبل أرقام عشرية
+      if(k==='parts_count')clean[k]=parseFloat(String(fields[k]||0).replace(/,/g,'.'))||0;
+      else clean[k]=fields[k];
+    });
     const row={complex_id:complexId,halaqa_id:halaqaId||null,...clean};
     const{data,error}=await _sb.from('students').insert(row).select().single();
     if(error)throw error;
@@ -158,10 +177,13 @@ const SardAPI = {
   },
 
   async updateStudent(id,fields){
-    // تنظيف الحقول المسموحة
     const allowed={sid:1,name:1,track:1,guardian_phone:1,student_phone:1,parts_count:1,halaqa_id:1};
     const clean={};
-    Object.keys(fields).forEach(k=>{if(allowed[k])clean[k]=fields[k];});
+    Object.keys(fields).forEach(k=>{
+      if(!allowed[k])return;
+      if(k==='parts_count')clean[k]=parseFloat(String(fields[k]||0).replace(/,/g,'.'))||0;
+      else clean[k]=fields[k];
+    });
     const{error}=await _sb.from('students').update(clean).eq('id',id);
     if(error)throw error;
   },
@@ -186,7 +208,7 @@ const SardAPI = {
         track:String(r.track||'').trim(),
         guardian_phone:String(r.guardian_phone||'').trim(),
         student_phone:String(r.student_phone||'').trim(),
-        parts_count:Number(r.parts_count)||0
+        parts_count:parseFloat(String(r.parts_count||0).replace(/,/g,'.'))||0
       };
     }).filter(r=>r.name);
 
@@ -208,10 +230,11 @@ const SardAPI = {
     const{data,error}=await _sb.from('settings').select('*').eq('complex_id',complexId).single();
     if(error&&error.code==='PGRST116'){
       // لا توجد إعدادات → إنشاء افتراضية
-      const{data:d2}=await _sb.from('settings').insert({complex_id:complexId}).select().single();
+      const{data:d2,error:e2}=await _sb.from('settings').insert({complex_id:complexId}).select().single();
+      if(e2){console.warn('settings insert error:',e2.message);return{};}
       return d2||{};
     }
-    if(error)return{};
+    if(error){console.warn('settings fetch error:',error.message,error.code);return{};}
     return data;
   },
 
