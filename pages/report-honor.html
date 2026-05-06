@@ -5,170 +5,295 @@
   <title>صفحة التكريم</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <link rel="stylesheet" href="../css/reports.css"/>
   <style>
-    body { background: linear-gradient(135deg,#0a1628 0%,#013560 50%,#014979 100%); min-height:100vh; }
-    .honor-wrap { max-width:1000px;margin:auto;padding:20px 20px 60px; }
-    .honor-header { text-align:center;padding:40px 20px 20px;color:#fff; }
-    .honor-header h1 { font-size:2.2rem;font-weight:900;margin-bottom:8px; }
-    .honor-header h1 i { color:var(--gold); }
-    .honor-header p { opacity:.7;font-size:.95rem; }
-    .podium-wrap { display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:30px auto;max-width:600px; }
-    .podium-col { display:flex;flex-direction:column;align-items:center;gap:8px;flex:1; }
-    .podium-card { width:100%;border-radius:var(--radius);text-align:center;padding:16px 12px;color:#fff;position:relative; }
-    .p1 { background:linear-gradient(135deg,#fbbf24,#d97706);box-shadow:0 8px 32px rgba(251,191,36,.4); }
-    .p2 { background:linear-gradient(135deg,#94a3b8,#64748b);box-shadow:0 8px 24px rgba(100,116,139,.3); }
-    .p3 { background:linear-gradient(135deg,#d97706,#92400e);box-shadow:0 8px 24px rgba(217,119,6,.3); }
-    .podium-rank { font-size:2rem;margin-bottom:4px; }
-    .podium-name { font-weight:800;font-size:.95rem;line-height:1.3; }
-    .podium-score { font-size:1.4rem;font-weight:900;margin-top:6px; }
-    .podium-sub { font-size:.75rem;opacity:.8; }
-    .podium-stand { background:rgba(255,255,255,.1);border-radius:var(--radius-sm) var(--radius-sm) 0 0;width:100%;text-align:center;padding:6px 0;font-size:.75rem;color:rgba(255,255,255,.6);font-weight:600; }
-    .honor-table-wrap { background:rgba(255,255,255,.05);border-radius:var(--radius);border:1px solid rgba(255,255,255,.1);overflow:hidden;margin-bottom:20px; }
-    .honor-table-title { padding:14px 20px;font-weight:800;color:#fff;font-size:1rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.1); }
-    .honor-table-title i { color:var(--gold); }
-    .honor-tbl { width:100%;border-collapse:collapse;font-size:.85rem; }
-    .honor-tbl thead th { background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);font-weight:700;padding:10px 14px;text-align:right; }
-    .honor-tbl tbody tr { border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s; }
-    .honor-tbl tbody tr:hover { background:rgba(255,255,255,.06); }
-    .honor-tbl tbody td { padding:10px 14px;color:#fff;vertical-align:middle; }
-    .filter-controls { display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:20px; }
-    .honor-filter-btn { padding:8px 18px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.7);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s; }
-    .honor-filter-btn.active { background:var(--gold);border-color:var(--gold);color:#fff; }
-    .pct-badge { display:inline-flex;padding:3px 12px;border-radius:12px;font-weight:800;font-size:.85rem; }
-    .pct-hi { background:rgba(16,185,129,.2);color:#6ee7b7; }
-    .pct-mid { background:rgba(251,191,36,.2);color:#fde68a; }
-    .pct-lo { background:rgba(239,68,68,.2);color:#fca5a5; }
-    .top-section { background:rgba(255,255,255,.04);border-radius:var(--radius);border:1px solid rgba(255,255,255,.08);padding:20px;margin-bottom:16px; }
-    .wa-btn { display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;padding:5px 12px;border-radius:12px;font-size:.78rem;font-weight:700;text-decoration:none;border:none;cursor:pointer; }
+    :root{--primary:#014979;--primary-dk:#013560;--primary-lt:#e8f2fb;--gold:#b19738;--gold-lt:#faf3e0;--success:#1a7a4a;--danger:#c0392b;--warning:#d97706;--bg:#f4f6f9;--card-bg:#ffffff;--text:#1e293b;--text-muted:#64748b;--border:rgba(1,73,121,0.10);--shadow-sm:0 2px 8px rgba(1,73,121,0.07);--shadow-md:0 6px 24px rgba(1,73,121,0.10);--shadow-lg:0 12px 40px rgba(1,73,121,0.14);--radius:14px;--radius-sm:8px;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    .navbar-sard{background:var(--primary);padding:0 20px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1000;box-shadow:0 2px 16px rgba(0,0,0,0.18);}
+    .navbar-brand{color:#fff;font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:8px;}
+    .navbar-brand i{color:var(--gold);font-size:1.2rem;}
+    .nav-back{padding:6px 14px;border-radius:20px;border:none;background:rgba(255,255,255,0.12);color:rgba(255,255,255,.85);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;transition:background .2s;}
+    .nav-back:hover{background:rgba(255,255,255,0.22);}
+    .btn-nav{padding:7px 16px;border-radius:var(--radius-sm);border:none;background:rgba(255,255,255,0.15);color:#fff;font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .2s;}
+    .btn-nav:hover{background:rgba(255,255,255,0.25);}
+    .page-wrap{padding:20px;max-width:1180px;margin:auto;padding-bottom:40px;}
+    .card-sard{background:var(--card-bg);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:20px;margin-bottom:16px;}
+    .card-title{font-size:1rem;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+    .kpi-card{background:var(--card-bg);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:18px;position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s;}
+    .kpi-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);}
+    .kpi-float{position:absolute;left:-10px;bottom:-10px;font-size:4.4rem;opacity:.07;pointer-events:none;transition:transform .3s,opacity .3s;}
+    .kpi-card:hover .kpi-float{transform:scale(1.15) rotate(-5deg);opacity:.12;}
+    .kpi-label{font-size:.78rem;color:var(--text-muted);font-weight:500;margin-bottom:4px;}
+    .kpi-value{font-size:1.85rem;font-weight:800;color:var(--primary);line-height:1.1;}
+    .kpi-value.green{color:var(--success);}.kpi-value.gold{color:var(--gold);}.kpi-value.red{color:var(--danger);}
+    .prog-bar{width:100%;height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:6px;}
+    .prog-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+    .prog-green{background:linear-gradient(90deg,#10b981,#34d399);}.prog-blue{background:linear-gradient(90deg,#3b82f6,#60a5fa);}.prog-amber{background:linear-gradient(90deg,#f59e0b,#fbbf24);}.prog-red{background:linear-gradient(90deg,#ef4444,#f87171);}
+    .badge-sard{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:700;}
+    .badge-prim{background:var(--primary-lt);color:var(--primary);}.badge-gold{background:var(--gold-lt);color:#7c6620;}.badge-pass{background:#d1fae5;color:#065f46;}.badge-fail{background:#fee2e2;color:#991b1b;}.badge-warn{background:#fef3c7;color:#92400e;}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    @media(max-width:900px){.grid-4,.grid-3{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:640px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;}}
+    .filter-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;}
+    @media(max-width:1000px){.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    @media(max-width:640px){.filter-grid{grid-template-columns:1fr;}}
+    .form-label{font-size:.82rem;color:var(--text-muted);font-weight:700;margin-bottom:6px;display:block;}
+    .sard-select,.sard-input{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:.92rem;font-weight:500;color:var(--primary);font-family:'Tajawal',sans-serif;}
+    .sard-select:focus,.sard-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(1,73,121,.10);}
+    .btn-primary-sard{background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 18px;font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+    .btn-primary-sard:hover{background:var(--primary-dk);transform:translateY(-1px);}
+    .btn-outline-sard{background:transparent;color:var(--primary);border:1.5px solid var(--primary);border-radius:var(--radius-sm);padding:9px 16px;font-family:'Tajawal',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+    .btn-outline-sard:hover{background:var(--primary);color:#fff;}
+    .hero{background:linear-gradient(135deg,rgba(1,73,121,1),rgba(1,53,96,.96));color:#fff;overflow:hidden;position:relative;}
+    .hero::after{content:'';position:absolute;left:-40px;bottom:-50px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(177,151,56,.22),transparent 70%);}
+    .hero h1{font-size:1.45rem;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:10px;position:relative;z-index:1;}
+    .hero p{font-size:.92rem;line-height:1.9;color:rgba(255,255,255,.86);position:relative;z-index:1;}
+    .spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:16px;}
+    .spinner{width:44px;height:44px;border:4px solid var(--primary-lt);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .empty-box{padding:28px;text-align:center;color:var(--text-muted);}
+    .animate-in{animation:fadeUp .35s ease;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+    .top-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+    @media(max-width:900px){.top-grid{grid-template-columns:1fr;}}
+    .podium-card{border:1px solid var(--border);border-radius:18px;padding:18px;background:#fff;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;}
+    .podium-card.rank-1{background:linear-gradient(135deg,#fff,#faf3e0);border-color:rgba(177,151,56,.28);}
+    .podium-card.rank-2{background:linear-gradient(135deg,#fff,#f4f7fb);}
+    .podium-card.rank-3{background:linear-gradient(135deg,#fff,#f9f5ef);}
+    .rank-badge{width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);}
+    .rank-1 .rank-badge{background:linear-gradient(135deg,#d4af37,#b19738);}
+    .rank-2 .rank-badge{background:linear-gradient(135deg,#94a3b8,#64748b);}
+    .rank-3 .rank-badge{background:linear-gradient(135deg,#c08457,#9a6b45);}
+    .student-name{font-size:1.12rem;font-weight:900;color:var(--primary);margin:10px 0 6px;}
+    .student-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+    .metric-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:.86rem;}
+    .metric-label{color:var(--text-muted);font-weight:700;}.metric-value{font-weight:800;color:var(--text);}
+    .tbl-wrap{overflow-x:auto;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);}
+    .sard-table{width:100%;border-collapse:collapse;font-size:.84rem;}
+    .sard-table thead th{background:var(--primary-lt);color:var(--primary);font-weight:800;padding:10px 12px;text-align:right;border-bottom:2px solid rgba(1,73,121,.15);white-space:nowrap;}
+    .sard-table tbody tr{background:#fff;transition:background .15s;}.sard-table tbody tr:nth-child(even){background:#fafbfd;}.sard-table tbody tr:hover{background:var(--primary-lt);}
+    .sard-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:.76rem;font-weight:800;background:#f8fafc;color:#475569;}
+    .pill.top{background:#fef3c7;color:#92400e;}
+    .section-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+    .section-tools-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .text-muted{color:var(--text-muted);font-size:.85rem;}.fw-bold{font-weight:700;}
   </style>
 </head>
 <body>
-<nav class="navbar-sard" style="background:rgba(0,0,0,.3);backdrop-filter:blur(10px);">
-  <div class="navbar-brand"><i class="fas fa-quran"></i><span id="navTitle">صفحة التكريم</span></div>
-  <div class="d-flex align-center gap-2">
-    <select id="halaqaFilter" class="sard-select" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2);" onchange="render()">
-      <option value="">كل المجمع</option>
-    </select>
+<nav class="navbar-sard">
+  <div class="navbar-brand"><i class="fas fa-award"></i><span id="navTitle">صفحة التكريم</span></div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
-    <a href="../index.html" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
+    <a href="#" onclick="goBack()" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
   </div>
 </nav>
 
-<div class="honor-wrap">
-  <div class="honor-header animate-in">
-    <h1><i class="fas fa-award"></i> صفحة التكريم</h1>
-    <p id="honorSubtitle">أفضل طلاب برنامج السرد</p>
-  </div>
-
-  <div class="filter-controls" id="filterControls">
-    <button class="honor-filter-btn active" onclick="setFilter('all',this)">كل الطلاب</button>
-    <button class="honor-filter-btn" onclick="setFilter('passed',this)">الناجحون فقط</button>
-    <button class="honor-filter-btn" onclick="setFilter('full',this)">أتمّوا الجلسات كاملاً</button>
-  </div>
-
-  <div id="app">
-    <div class="spinner-wrap animate-in"><div class="spinner" style="border-color:rgba(255,255,255,.2);border-top-color:#fff;"></div><span style="color:rgba(255,255,255,.6);">جاري التحميل...</span></div>
-  </div>
+<div class="page-wrap" id="app">
+  <div class="spinner-wrap"><div class="spinner"></div><span class="text-muted">جاري تحميل صفحة التكريم...</span></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/api.js"></script>
-<script src="../js/reports.js"></script>
 <script>
-var _D = null, _filter = 'all';
+function goBack(){var c=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';location.href='../index.html'+(c?'?c='+c:'');}
+function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}
+function fN(v){return Number(v||0).toLocaleString('en-US');}
+function fP(v){return Number(v||0).toLocaleString('en-US',{maximumFractionDigits:1});}
+function fillCls(p){p=Number(p||0);return p>=90?'prog-green':p>=75?'prog-blue':p>=60?'prog-amber':'prog-red';}
+function metricColorClass(p){p=Number(p||0);return p>=90?'green':p>=75?'':p>=60?'gold':'red';}
+function statusLabel(s){return s==='present'?'حاضر':s==='late'?'متأخر':s==='excused'?'معتذر':s==='absent'?'غائب':'—';}
+function statusBadge(s){return s==='present'?'badge-pass':s==='late'?'badge-warn':s==='excused'?'badge-prim':s==='absent'?'badge-fail':'badge-prim';}
 
-async function loadData() {
-  document.getElementById('app').innerHTML = '<div class="spinner-wrap animate-in"><div class="spinner" style="border-color:rgba(255,255,255,.2);border-top-color:#fff;"></div><span style="color:rgba(255,255,255,.6);">جاري التحميل...</span></div>';
-  try {
-    const res = await loadReportData();
-    _D = res;
-    document.getElementById('navTitle').textContent = 'التكريم — ' + res.complex.name;
-    document.getElementById('honorSubtitle').textContent = 'أفضل طلاب ' + res.complex.name;
-    // populate halaqa filter
-    const sel = document.getElementById('halaqaFilter');
-    sel.innerHTML = '<option value="">كل المجمع</option>' + res.summary.halaqas.map(h=>`<option value="${escH(h.name)}">${escH(h.name)}</option>`).join('');
-    render();
-  } catch(e) {
-    document.getElementById('app').innerHTML = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,.6);">${escH(e.message)}</div>`;
-  }
+var STATE={init:null,students:[],honorRows:[],filters:{halaqa:'__all__',track:'__all__',mode:'overall',minPercent:'0',limit:'20'}};
+
+function getEffectiveDivisions(student,trackConfigs,settings){
+  var tc=(trackConfigs||[]).find(function(t){return t&&t.name===student.track;});
+  if(tc&&Number(tc.parts_divisions))return Number(tc.parts_divisions);
+  return Number((settings||{}).parts_divisions||2)||2;
 }
 
-function setFilter(f, btn) {
-  _filter = f;
-  document.querySelectorAll('.honor-filter-btn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  render();
-}
-
-function render() {
-  if (!_D) return;
-  const halaqaF = document.getElementById('halaqaFilter').value;
-  let students = _D.summary.students.filter(s => s.displayed > 0);
-  if (halaqaF) students = students.filter(s => s.halaqa === halaqaF);
-  if (_filter === 'passed') students = students.filter(s => s.passPct >= 50);
-  if (_filter === 'full')   students = students.filter(s => s.remaining === 0);
-  students = students.sort((a,b) => b.studentPct - a.studentPct);
-
-  if (!students.length) { document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,.5);"><i class="fas fa-users" style="font-size:3rem;display:block;margin-bottom:12px;"></i><p>لا توجد نتائج</p></div>'; return; }
-
-  const top3 = students.slice(0,3);
-  const rest  = students.slice(3);
-
-  // منصة التكريم
-  const podOrder = top3.length===3 ? [top3[1],top3[0],top3[2]] : top3;
-  const podStyles = top3.length===3 ? ['p2','p1','p3'] : ['p1'];
-  const podRanks = top3.length===3 ? ['🥈','🥇','🥉'] : ['🥇'];
-  const podHeights = top3.length===3 ? ['120px','150px','100px'] : ['150px'];
-
-  let podHtml = '<div class="podium-wrap">';
-  podOrder.forEach((st,i) => {
-    const pct = fP(st.studentPct);
-    const pClass = podStyles[i];
-    podHtml += `<div class="podium-col">
-      <div class="podium-card ${pClass}">
-        <div class="podium-rank">${podRanks[i]}</div>
-        <div class="podium-name">${escH(st.name)}</div>
-        <div class="podium-sub">${escH(st.halaqa||'')}</div>
-        <div class="podium-score">${pct}%</div>
-        <div class="podium-sub">مجتاز: ${st.passed} · راسب: ${st.failed}</div>
-        ${st.guardian_phone?`<a href="https://wa.me/${st.guardian_phone.replace(/\D/g,'')}" target="_blank" class="wa-btn" style="margin-top:8px;"><i class="fab fa-whatsapp"></i> تكريم</a>`:''}
-      </div>
-      <div class="podium-stand" style="height:${podHeights[i]};display:flex;align-items:center;justify-content:center;">${i===1?'المركز الأول':i===0?'المركز الثاني':'المركز الثالث'}</div>
-    </div>`;
+// ─── مطابق للأصل: pickLatestSections ───
+function pickLatestSections(sections,div){
+  var map={};
+  (sections||[]).forEach(function(sec,idx){
+    if(!sec||!sec.partNumber)return;
+    var part=Number(sec.partNumber||0);if(!part||part<1||part>30)return;
+    var hizb=div===1?1:Number(sec.hizb||0);if(!hizb||hizb<1||hizb>div)return;
+    var dateKey=Date.parse(String(sec.date||''));if(isNaN(dateKey))dateKey=0;
+    var key=part+'|'+hizb;
+    if(!map[key]||dateKey>map[key]._dateKey||(dateKey===map[key]._dateKey&&idx>=map[key]._idx)){
+      map[key]=Object.assign({},sec,{_dateKey:dateKey,_idx:idx});
+    }
   });
-  podHtml += '</div>';
-
-  // جدول بقية الطلاب
-  let tableHtml = '';
-  if (rest.length) {
-    const tRows = rest.map((st,i) => {
-      const pct = Number(st.studentPct);
-      const pClass = pct>=70?'pct-hi':pct>=50?'pct-mid':'pct-lo';
-      return `<tr>
-        <td><span class="rank-badge rk-n">${i+4}</span></td>
-        <td style="color:#fff;font-weight:700;">${escH(st.name)}</td>
-        <td style="color:rgba(255,255,255,.7);">${escH(st.halaqa||'—')}</td>
-        <td>${st.track?`<span style="background:rgba(177,151,56,.2);color:#fde68a;padding:2px 8px;border-radius:10px;font-size:.78rem;">${escH(st.track)}</span>`:'—'}</td>
-        <td style="color:rgba(255,255,255,.8);">${st.passed}/${st.displayed}</td>
-        <td><span class="pct-badge ${pClass}">${fP(pct)}%</span></td>
-        <td>${st.guardian_phone?`<a href="https://wa.me/${st.guardian_phone.replace(/\D/g,'')}" target="_blank" class="wa-btn"><i class="fab fa-whatsapp"></i> تكريم</a>`:'—'}</td>
-      </tr>`;
-    }).join('');
-
-    tableHtml = `<div class="honor-table-wrap">
-      <div class="honor-table-title"><i class="fas fa-list-ol"></i> قائمة المتفوقين</div>
-      <div style="overflow-x:auto;"><table class="honor-tbl">
-        <thead><tr><th>#</th><th>الطالب</th><th>الحلقة</th><th>المسار</th><th>المجتاز/المعروض</th><th>النسبة</th><th></th></tr></thead>
-        <tbody>${tRows}</tbody>
-      </table></div>
-    </div>`;
-  }
-
-  document.getElementById('app').innerHTML = podHtml + tableHtml;
+  return Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){
+    var pa=Number(a.partNumber||0),pb=Number(b.partNumber||0);
+    if(pa!==pb)return pa-pb;
+    return Number(a.hizb||0)-Number(b.hizb||0);
+  });
 }
 
+function calcHonorRow(student,sections,trackConfigs,settings,attStatus){
+  var div=getEffectiveDivisions(student,trackConfigs,settings);
+  var latestSections=pickLatestSections(sections,div);
+  var totalScore=latestSections.reduce(function(sum,sec){var sc=Number(sec&&sec.score||0);return sum+(isFinite(sc)?sc:0);},0);
+  var passedSections=latestSections.filter(function(sec){return !!sec.isPassed;}).length;
+  var failedSections=latestSections.length-passedSections;
+  var displayedParts=latestSections.length/div;
+  var passedParts=passedSections/div;
+  var failedParts=failedSections/div;
+  var expectedParts=Number(student.parts_count||0);
+  var remainingParts=Math.max(0,expectedParts-displayedParts);
+  var overallPercent=expectedParts>0?(totalScore/(expectedParts*20))*100:0;
+  var completionPercent=expectedParts>0?(displayedParts/expectedParts)*100:0;
+  var excellencePercent=displayedParts>0?(totalScore/(displayedParts*20))*100:0;
+  var passPercent=expectedParts>0?(passedParts/expectedParts)*100:0;
+  var honorType=overallPercent>=90?'متفوّق':overallPercent>=75?'متميّز':overallPercent>=60?'جيّد':'قيد المتابعة';
+  return{id:student.id,name:student.name||'',halaqa:student.halaqa||'بدون حلقة',track:student.track||'بدون مسار',attendanceStatus:attStatus||'',partsCount:expectedParts,partsDivisions:div,displayedParts:displayedParts,passedParts:passedParts,failedParts:failedParts,remainingParts:remainingParts,totalScore:totalScore,overallPercent:overallPercent,completionPercent:completionPercent,excellencePercent:excellencePercent,passPercent:passPercent,honorType:honorType,sectionsCount:latestSections.length,latestSections:latestSections};
+}
+
+async function loadData(){
+  document.getElementById('app').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><span class="text-muted">جاري تحميل صفحة التكريم...</span></div>';
+  try{
+    var code=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';
+    if(!code)throw new Error('لا يوجد رمز مجمع');
+    var complex=await SardAPI.getComplexByCode(code);
+    document.getElementById('navTitle').textContent='صفحة التكريم — '+complex.name;
+    var cid=complex.id;
+    var today=new Date().toISOString().split('T')[0];
+    var res=await Promise.all([SardAPI.getSettings(cid),SardAPI.getTrackConfigs(cid),SardAPI.getStudents(cid),SardAPI.getRecords(cid),SardAPI.getAttendance(cid,today)]);
+    var settings=res[0]||{},trackConfigs=res[1]||[],students=res[2]||[],records=res[3]||[],todayAtt=res[4]||[];
+    var attMap={};todayAtt.forEach(function(a){attMap[a.student_id]=a.status;});
+    var recMap={};records.forEach(function(r){recMap[r.student_id]=r.sections||[];});
+    STATE.init={settings:settings,trackConfigs:trackConfigs,complex:complex};
+    STATE.honorRows=students.map(function(student){
+      return calcHonorRow(student,recMap[student.id]||[],trackConfigs,settings,attMap[student.id]||'');
+    });
+    render();
+  }catch(e){
+    document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-circle-exclamation" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
+  }
+}
+
+function uniqueValues(key){var map={};STATE.honorRows.forEach(function(r){if(r&&r[key])map[r[key]]=true;});return Object.keys(map).sort(function(a,b){return a.localeCompare(b,'ar');});}
+
+function getFilteredRows(){
+  var f=STATE.filters;
+  var rows=STATE.honorRows.filter(function(r){
+    if(f.halaqa!=='__all__'&&r.halaqa!==f.halaqa)return false;
+    if(f.track!=='__all__'&&r.track!==f.track)return false;
+    if(Number(r.overallPercent||0)<Number(f.minPercent||0))return false;
+    if(f.mode==='elite'&&Number(r.overallPercent||0)<90)return false;
+    if(f.mode==='completed'&&Number(r.remainingParts||0)>0)return false;
+    if(f.mode==='high-completion'&&Number(r.completionPercent||0)<90)return false;
+    return true;
+  });
+  rows.sort(function(a,b){
+    if(f.mode==='completed'){if(Number(b.overallPercent||0)!==Number(a.overallPercent||0))return Number(b.overallPercent||0)-Number(a.overallPercent||0);return Number(b.totalScore||0)-Number(a.totalScore||0);}
+    if(f.mode==='high-completion'){if(Number(b.completionPercent||0)!==Number(a.completionPercent||0))return Number(b.completionPercent||0)-Number(a.completionPercent||0);return Number(b.overallPercent||0)-Number(a.overallPercent||0);}
+    if(Number(b.overallPercent||0)!==Number(a.overallPercent||0))return Number(b.overallPercent||0)-Number(a.overallPercent||0);
+    if(Number(b.totalScore||0)!==Number(a.totalScore||0))return Number(b.totalScore||0)-Number(a.totalScore||0);
+    return Number(b.passedParts||0)-Number(a.passedParts||0);
+  });
+  return rows;
+}
+
+function getModeLabel(mode){return mode==='elite'?'المتفوقون 90% فأعلى':mode==='completed'?'المكتملون':mode==='high-completion'?'الأعلى إنجازًا':'الترتيب العام';}
+
+function renderKpiCard(label,value,icon,colorCls,barPct){
+  return'<div class="kpi-card"><div class="kpi-label">'+escH(label)+'</div><div class="kpi-value '+(colorCls||'')+'">'+escH(String(value))+'</div>'+(barPct!==undefined?'<div class="prog-bar"><div class="prog-fill '+fillCls(barPct)+'" style="width:'+Math.max(0,Math.min(100,Number(barPct||0)))+'%"></div></div>':'')+'<i class="fas '+escH(icon)+' kpi-float"></i></div>';
+}
+
+function renderFilters(rows){
+  var halaqas=uniqueValues('halaqa'),tracks=uniqueValues('track'),f=STATE.filters;
+  return'<div class="card-sard"><div class="section-tools"><div class="card-title" style="margin-bottom:0;"><i class="fas fa-filter" style="color:var(--gold);"></i>فلاتر التكريم</div>'
+    +'<div class="section-tools-right"><span class="badge-sard badge-gold"><i class="fas fa-list-check"></i> '+escH(getModeLabel(f.mode))+'</span><span class="badge-sard badge-prim"><i class="fas fa-users"></i> النتائج: '+escH(String(rows.length))+'</span></div></div>'
+    +'<div class="filter-grid">'
+    +'<div><label class="form-label">الحلقة</label><select class="sard-select" onchange="setFilter(\'halaqa\',this.value)"><option value="__all__"'+(f.halaqa==='__all__'?' selected':'')+'>كل الحلق</option>'+halaqas.map(function(h){return'<option value="'+escH(h)+'"'+(f.halaqa===h?' selected':'')+'>'+escH(h)+'</option>';}).join('')+'</select></div>'
+    +'<div><label class="form-label">المسار</label><select class="sard-select" onchange="setFilter(\'track\',this.value)"><option value="__all__"'+(f.track==='__all__'?' selected':'')+'>كل المسارات</option>'+tracks.map(function(t){return'<option value="'+escH(t)+'"'+(f.track===t?' selected':'')+'>'+escH(t)+'</option>';}).join('')+'</select></div>'
+    +'<div><label class="form-label">نمط التكريم</label><select class="sard-select" onchange="setFilter(\'mode\',this.value)"><option value="overall"'+(f.mode==='overall'?' selected':'')+'>الترتيب العام</option><option value="elite"'+(f.mode==='elite'?' selected':'')+'>المتفوقون 90%+</option><option value="completed"'+(f.mode==='completed'?' selected':'')+'>المكتملون</option><option value="high-completion"'+(f.mode==='high-completion'?' selected':'')+'>الأعلى إنجازًا</option></select></div>'
+    +'<div><label class="form-label">الحد الأدنى للنسبة</label><select class="sard-select" onchange="setFilter(\'minPercent\',this.value)">'+['0','60','70','75','80','85','90'].map(function(v){return'<option value="'+v+'"'+(f.minPercent===v?' selected':'')+'>'+v+'%</option>';}).join('')+'</select></div>'
+    +'<div><label class="form-label">عدد المعروضين</label><select class="sard-select" onchange="setFilter(\'limit\',this.value)">'+['10','20','30','50','9999'].map(function(v){return'<option value="'+v+'"'+(f.limit===v?' selected':'')+'>'+(v==='9999'?'الكل':v)+'</option>';}).join('')+'</select></div>'
+    +'</div></div>';
+}
+
+function renderPodium(rows){
+  if(!rows.length)return'<div class="card-sard"><div class="empty-box">لا توجد نتائج مطابقة للفلاتر الحالية</div></div>';
+  var top3=rows.slice(0,3);
+  return'<div class="card-sard"><div class="card-title"><i class="fas fa-trophy" style="color:var(--gold);"></i>أوائل التكريم</div>'
+    +'<div class="top-grid">'
+    +top3.map(function(r,idx){
+      var rank=idx+1;
+      return'<div class="podium-card rank-'+rank+'">'
+        +'<span class="rank-badge">'+rank+'</span>'
+        +'<div class="student-name">'+escH(r.name)+'</div>'
+        +'<div class="student-meta"><span class="badge-sard badge-prim"><i class="fas fa-mosque"></i>'+escH(r.halaqa)+'</span><span class="badge-sard badge-gold"><i class="fas fa-route"></i>'+escH(r.track)+'</span><span class="badge-sard '+statusBadge(r.attendanceStatus)+'"><i class="fas fa-user-check"></i>'+escH(statusLabel(r.attendanceStatus))+'</span></div>'
+        +'<div class="metric-row"><span class="metric-label">النسبة الكلية</span><span class="metric-value">'+escH(fP(r.overallPercent))+'%</span></div>'
+        +'<div class="prog-bar"><div class="prog-fill '+fillCls(r.overallPercent)+'" style="width:'+Math.max(0,Math.min(100,Number(r.overallPercent||0)))+'%"></div></div>'
+        +'<div class="metric-row"><span class="metric-label">نسبة التميّز</span><span class="metric-value">'+escH(fP(r.excellencePercent))+'%</span></div>'
+        +'<div class="metric-row"><span class="metric-label">مجموع الدرجات</span><span class="metric-value">'+escH(fP(r.totalScore))+'</span></div>'
+        +'<div class="metric-row"><span class="metric-label">الأجزاء المعروضة</span><span class="metric-value">'+escH(fP(r.displayedParts))+'</span></div>'
+        +'<div class="metric-row"><span class="metric-label">المتبقي</span><span class="metric-value">'+escH(fP(r.remainingParts))+'</span></div>'
+        +'</div>';
+    }).join('')+'</div></div>';
+}
+
+function renderTable(rows){
+  if(!rows.length)return'<div class="card-sard"><div class="empty-box">لا توجد نتائج مطابقة للفلاتر الحالية</div></div>';
+  var limit=Number(STATE.filters.limit||20);
+  var viewRows=limit===9999?rows:rows.slice(0,limit);
+  return'<div class="card-sard"><div class="section-tools"><div class="card-title" style="margin-bottom:0;"><i class="fas fa-medal" style="color:var(--gold);"></i>قائمة المكرّمين</div>'
+    +'<div class="section-tools-right"><span class="pill top"><i class="fas fa-ranking-star"></i> الترتيب حسب '+escH(getModeLabel(STATE.filters.mode))+'</span></div></div>'
+    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr>'
+    +'<th>#</th><th>الطالب</th><th>الحلقة</th><th>المسار</th><th>مجموع الدرجات</th><th>النسبة الكلية</th><th>نسبة التميّز</th><th>نسبة الإنجاز</th><th>الأجزاء المجتازة</th><th>المتبقي</th><th>الحضور</th><th>التصنيف</th>'
+    +'</tr></thead><tbody>'
+    +viewRows.map(function(r,idx){
+      return'<tr>'
+        +'<td><span class="pill '+(idx<3?'top':'')+'">'+(idx+1)+'</span></td>'
+        +'<td><div class="fw-bold">'+escH(r.name)+'</div><div class="text-muted">المحفوظ: '+escH(fP(r.partsCount))+' جزء</div></td>'
+        +'<td>'+escH(r.halaqa)+'</td><td>'+escH(r.track)+'</td>'
+        +'<td>'+escH(fP(r.totalScore))+'</td>'
+        +'<td><span class="badge-sard '+(Number(r.overallPercent)>=90?'badge-pass':Number(r.overallPercent)>=75?'badge-gold':Number(r.overallPercent)>=60?'badge-prim':'badge-fail')+'">'+escH(fP(r.overallPercent))+'%</span></td>'
+        +'<td>'+escH(fP(r.excellencePercent))+'%</td>'
+        +'<td>'+escH(fP(r.completionPercent))+'%</td>'
+        +'<td>'+escH(fP(r.passedParts))+'</td>'
+        +'<td>'+escH(fP(r.remainingParts))+'</td>'
+        +'<td><span class="badge-sard '+statusBadge(r.attendanceStatus)+'">'+escH(statusLabel(r.attendanceStatus))+'</span></td>'
+        +'<td>'+escH(r.honorType)+'</td>'
+        +'</tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+function render(){
+  var rows=getFilteredRows();
+  var avgOverall=rows.length?rows.reduce(function(s,r){return s+Number(r.overallPercent||0);},0)/rows.length:0;
+  var avgCompletion=rows.length?rows.reduce(function(s,r){return s+Number(r.completionPercent||0);},0)/rows.length:0;
+  var elites=rows.filter(function(r){return Number(r.overallPercent||0)>=90;}).length;
+  var completed=rows.filter(function(r){return Number(r.remainingParts||0)<=0;}).length;
+  var complexName=((STATE.init||{}).complex||{}).name||'برنامج السرد';
+  document.getElementById('app').innerHTML=''
+    +'<div class="card-sard hero"><h1><i class="fas fa-crown"></i> صفحة تكريم المتفوقين</h1>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;position:relative;z-index:1;">'
+    +'<span class="badge-sard badge-gold"><i class="fas fa-building-columns"></i>'+escH(complexName)+'</span>'
+    +'<span class="badge-sard badge-prim"><i class="fas fa-users"></i> الطلاب: '+escH(String(STATE.honorRows.length))+'</span>'
+    +'<span class="badge-sard badge-pass"><i class="fas fa-filter-circle-dollar"></i> النتائج الحالية: '+escH(String(rows.length))+'</span>'
+    +'</div></div>'
+    +renderFilters(rows)
+    +'<div class="grid-4">'
+    +renderKpiCard('عدد المكرّمين',fN(rows.length),'fa-award')
+    +renderKpiCard('المتفوقون 90%+',fN(elites),'fa-star','green')
+    +renderKpiCard('المكتملون',fN(completed),'fa-flag-checkered','gold')
+    +renderKpiCard('متوسط النسبة',fP(avgOverall)+'%','fa-chart-line',metricColorClass(avgOverall),avgOverall)
+    +'</div>'
+    +'<div class="grid-2" style="margin-top:12px;">'
+    +renderKpiCard('متوسط الإنجاز',fP(avgCompletion)+'%','fa-bars-progress',metricColorClass(avgCompletion),avgCompletion)
+    +'</div>'
+    +'<div style="margin-top:16px;">'+renderPodium(rows)+'</div>'
+    +renderTable(rows);
+}
+
+function setFilter(key,val){STATE.filters[key]=val;render();}
 loadData();
 </script>
 </body>
