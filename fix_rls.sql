@@ -1,3 +1,7 @@
+-- ── 0. إصلاح نوع parts_count ليقبل الكسور (2.5 جزء) ──
+ALTER TABLE students ALTER COLUMN parts_count TYPE numeric(5,2) USING parts_count::numeric;
+ALTER TABLE track_configs ALTER COLUMN parts_divisions TYPE int USING parts_divisions::int;
+
 -- ============================================================
 -- fix_rls.sql — شغّله كاملاً في Supabase SQL Editor
 -- ============================================================
@@ -5,7 +9,11 @@
 -- ── 1. إضافة حقول مفقودة ──
 ALTER TABLE settings
   ADD COLUMN IF NOT EXISTS approval_whatsapp_template text DEFAULT '',
-  ADD COLUMN IF NOT EXISTS registration_mode text DEFAULT 'auto';
+  ADD COLUMN IF NOT EXISTS registration_mode text DEFAULT 'auto',
+  ADD COLUMN IF NOT EXISTS manager_name text DEFAULT '';
+
+-- إضافة email لجدول users (لتسجيل الدخول بالجوال)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email text DEFAULT '';
 
 -- ── 2. تعطيل تأكيد البريد (مهم جداً) ──
 -- افعل هذا يدوياً في: Authentication → Settings → "Enable email confirmations" → أوقفه
@@ -59,11 +67,7 @@ CREATE POLICY "usr_delete_adm" ON users FOR DELETE
 
 -- ── 7. Settings ──
 CREATE POLICY "st_insert_pub" ON settings FOR INSERT WITH CHECK (true);
-CREATE POLICY "st_select" ON settings FOR SELECT
-  USING (
-    complex_id = get_my_complex_id()
-    OR get_my_role() = 'superadmin'
-  );
+CREATE POLICY "st_select" ON settings FOR SELECT USING (true);
 CREATE POLICY "st_update" ON settings FOR UPDATE
   USING (
     complex_id = get_my_complex_id()
@@ -97,22 +101,17 @@ CREATE POLICY "tc_update" ON track_configs FOR UPDATE
 CREATE POLICY "tc_delete" ON track_configs FOR DELETE
   USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 
--- ── 11. Records (قراءة عامة - المسمّع يحتاج يرى السجلات) ──
+-- ── 11. Records (عام - المسمّع الزائر يكتب بدون تسجيل) ──
 CREATE POLICY "rec_select" ON records FOR SELECT USING (true);
-CREATE POLICY "rec_insert" ON records FOR INSERT
-  WITH CHECK (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
-CREATE POLICY "rec_update" ON records FOR UPDATE
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
+CREATE POLICY "rec_insert" ON records FOR INSERT WITH CHECK (true);
+CREATE POLICY "rec_update" ON records FOR UPDATE USING (true);
 CREATE POLICY "rec_delete" ON records FOR DELETE
   USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 
--- ── 12. Attendance ──
-CREATE POLICY "att_select" ON attendance FOR SELECT
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
-CREATE POLICY "att_insert" ON attendance FOR INSERT
-  WITH CHECK (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
-CREATE POLICY "att_update" ON attendance FOR UPDATE
-  USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
+-- ── 12. Attendance (كتابة عامة للمشرف والمسمّع) ──
+CREATE POLICY "att_select" ON attendance FOR SELECT USING (true);
+CREATE POLICY "att_insert" ON attendance FOR INSERT WITH CHECK (true);
+CREATE POLICY "att_update" ON attendance FOR UPDATE USING (true);
 CREATE POLICY "att_delete" ON attendance FOR DELETE
   USING (complex_id = get_my_complex_id() OR get_my_role() = 'superadmin');
 
