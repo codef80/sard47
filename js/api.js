@@ -15,6 +15,20 @@ function btnReset(el){if(!el)return;el.disabled=el._d||false;el.innerHTML=el._h|
 function pulseBtn(el){if(!el)return;el.style.transform='scale(0.93)';setTimeout(()=>{el.style.transform='';},150);}
 function divLabel(div){return div===4?'الربع':div===1?'كامل':'الحزب';}
 
+// بريد Supabase Auth يجب أن يكون فريدًا على مستوى المشروع كاملًا.
+// لذلك نولّد بريد Auth داخليًا لكل مجمع، ونحفظ البريد الحقيقي في جدول users.email.
+function normalizeEmail(v){return String(v??'').trim().toLowerCase();}
+function normalizeComplexCode(v){return String(v??'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function buildAuthEmail(email,complexCode){
+  email=normalizeEmail(email);
+  const code=normalizeComplexCode(complexCode);
+  if(!email||!code||!email.includes('@'))return email;
+  const at=email.lastIndexOf('@');
+  const local=email.slice(0,at);
+  const domain=email.slice(at+1);
+  return `${local}+sard${code.toLowerCase()}@${domain}`;
+}
+
 // =============================================
 // SardAPI — كل عمليات Supabase
 // =============================================
@@ -26,34 +40,48 @@ const SardAPI = {
     return data.session;
   },
 
-  async signIn(emailOrPhone,password){
-    let loginEmail=emailOrPhone.trim();
-    // إذا كان جوال: ابحث عن الإيميل المرتبط به
+  async signIn(emailOrPhone,password,complexCode=''){
+    let loginEmail=String(emailOrPhone||'').trim();
+    const originalLogin=loginEmail;
+    const code=normalizeComplexCode(complexCode||localStorage.getItem('sard_complex_code')||'');
     const isPhone=/^(05|5)[0-9]{7,8}$/.test(loginEmail.replace(/[\s-]/g,''));
-    if(isPhone){
-      // جلب الإيميل من جدول users عبر الـ phone
-      // ملاحظة: يحتاج RLS يسمح بقراءة phone عامة
-      const phone=loginEmail.replace(/[\s-]/g,'');
-      const{data:u}=await _sb.from('users').select('id').eq('phone',phone).single();
-      if(!u)throw new Error('رقم الجوال غير مسجل');
-      // نحتاج getUser بالـ id - لكن Supabase لا يكشف الإيميل من جدول users
-      // الحل: جدول users يخزن الإيميل أيضاً
-      const{data:authU}=await _sb.from('users').select('email').eq('phone',phone).single();
-      if(!authU||!authU.email)throw new Error('لم يتم ربط الجوال ببريد إلكتروني');
-      loginEmail=authU.email;
+
+    // مع رمز المجمع نحاول جلب auth_email المخزن، وهذا يحافظ على المستخدمين القدامى أيضًا.
+    if(code){
+      const{data:lookupAuthEmail,error:lookupError}=await _sb.rpc('get_auth_email_for_login',{
+        p_complex_code:code,
+        p_login:originalLogin
+      });
+
+      if(!lookupError&&lookupAuthEmail){
+        loginEmail=lookupAuthEmail;
+      }else if(!isPhone){
+        // fallback للمستخدمين الجدد إذا لم توجد دالة SQL أو لم يوجد profile بعد.
+        loginEmail=buildAuthEmail(originalLogin,code);
+      }else{
+        if(lookupError&&String(lookupError.message||'').includes('function')){
+          throw new Error('شغّل ملف fix_registration_email_per_complex.sql أولاً لتفعيل الدخول بالجوال');
+        }
+        throw new Error('رقم الجوال غير مسجل في هذا المجمع');
+      }
     }
+
     const{data,error}=await _sb.auth.signInWithPassword({email:loginEmail,password});
     if(error)throw new Error(error.message==='Invalid login credentials'?'البريد/الجوال أو كلمة المرور غير صحيحة':error.message);
     return data;
   },
 
-  // signUp يعمل بدون email confirmation إذا كان Supabase مضبوط على "Disable email confirmation"
-  // أو نستخدم admin API بدلاً منه — هنا نستخدم signUp العادي
-  async signUp(email,password,meta){
-    const{data,error}=await _sb.auth.signUp({email,password,options:{data:meta}});
+  // عند وجود complexCode نولّد بريد Auth داخليًا حتى يمكن تكرار البريد الحقيقي بين مجمعات مختلفة.
+  async signUp(email,password,meta={},complexCode=''){
+    const realEmail=normalizeEmail(email);
+    const code=normalizeComplexCode(complexCode);
+    const authEmail=code?buildAuthEmail(realEmail,code):realEmail;
+    const authMeta={...(meta||{}),email:realEmail,complexCode:code};
+
+    const{data,error}=await _sb.auth.signUp({email:authEmail,password,options:{data:authMeta}});
     if(error)throw new Error(error.message);
     if(!data.user)throw new Error('فشل التسجيل، حاول مرة أخرى');
-    return data;
+    return {...data,authEmail,realEmail};
   },
 
   async signOut(){await _sb.auth.signOut();},
@@ -86,7 +114,8 @@ const SardAPI = {
       throw error;
     }
     // إنشاء إعدادات افتراضية (تجاهل الخطأ إذا موجودة)
-    await _sb.from('settings').insert({complex_id:data.id}).catch(()=>{});
+    const{error:settingsError}=await _sb.from('settings').insert({complex_id:data.id});
+    if(settingsError&&settingsError.code!=='23505')console.warn('settings insert error:',settingsError.message);
     return data;
   },
 
@@ -113,9 +142,22 @@ const SardAPI = {
     return data||[];
   },
 
-  async createUserProfile(id,name,role,complexId,phone,status='pending',email=''){
-    const{error}=await _sb.from('users').insert({id,name,role,complex_id:complexId,phone:phone||null,status,email:email||''});
-    if(error)throw error;
+  async createUserProfile(id,name,role,complexId,phone,status='pending',email='',authEmail=''){
+    const realEmail=normalizeEmail(email);
+    const{error}=await _sb.from('users').insert({
+      id,
+      name,
+      role,
+      complex_id:complexId,
+      phone:phone||null,
+      status,
+      email:realEmail,
+      auth_email:normalizeEmail(authEmail)||realEmail
+    });
+    if(error){
+      if(error.code==='23505')throw new Error('هذا البريد أو رقم الجوال مسجل مسبقاً في نفس المجمع');
+      throw error;
+    }
   },
 
   async updateUserStatus(userId,status){
