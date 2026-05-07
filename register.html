@@ -8,53 +8,94 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <link rel="stylesheet" href="css/sard.css"/>
   <style>
-    .reg-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, var(--primary) 0%, #025a96 60%, #0370ba 100%); position: relative; overflow: hidden; }
-    .reg-wrap::before { content:''; position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; }
-    .reg-card { background: #fff; border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,0.25); width: 100%; max-width: 500px; overflow: hidden; position: relative; z-index: 1; }
-    .reg-header { background: var(--primary); padding: 32px; text-align: center; color: #fff; }
-    .reg-header i { font-size: 2.5rem; color: var(--gold); }
-    .reg-header h1 { font-size: 1.5rem; font-weight: 800; margin-top: 10px; }
-    .reg-header p { margin-top: 6px; opacity: .75; font-size: .9rem; }
-    .reg-body { padding: 28px; }
-    .tab-switch { display: flex; background: var(--bg); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 24px; gap: 4px; }
-    .tab-switch-btn { flex: 1; padding: 10px; border: none; border-radius: calc(var(--radius-sm) - 2px); background: transparent; font-family: 'Tajawal', sans-serif; font-size: .9rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .2s; }
-    .tab-switch-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-    label.field-label { display: block; font-weight: 700; font-size: .88rem; color: var(--text); margin-bottom: 6px; margin-top: 14px; }
-    label.field-label:first-child { margin-top: 0; }
-    .step-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
-    .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; border: 2px solid var(--border); color: var(--text-muted); transition: all .3s; flex-shrink: 0; }
-    .step-dot.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-    .step-dot.done { background: var(--success); border-color: var(--success); color: #fff; }
-    .step-line { flex: 1; height: 2px; background: var(--border); border-radius: 1px; transition: background .3s; }
-    .step-line.done { background: var(--success); }
-    .success-card { text-align: center; padding: 20px 0; }
-    .success-icon { width: 72px; height: 72px; border-radius: 50%; background: #d1fae5; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 2rem; color: var(--success); }
-    .link-box { background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; align-items: center; gap: 10px; margin: 16px 0; }
-    .link-box input { flex: 1; border: none; background: transparent; font-family: 'Tajawal', sans-serif; font-size: .88rem; color: var(--primary); font-weight: 600; direction: ltr; text-align: left; }
-    .link-box input:focus { outline: none; }
+    :root{--primary:#014979;--primary-dk:#013560;--primary-lt:#e8f2fb;--gold:#b19738;--success:#1a7a4a;--danger:#c0392b;--warning:#d97706;--bg:#f4f6f9;--card-bg:#ffffff;--text:#1e293b;--text-muted:#64748b;--border:rgba(1,73,121,0.10);--shadow-sm:0 2px 8px rgba(1,73,121,0.07);--shadow-lg:0 20px 60px rgba(0,0,0,0.25);--radius:14px;--radius-sm:8px;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Tajawal',sans-serif;color:var(--text);}
+    /* SPINNER */
+    .spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;}
+    .spinner-box{background:#fff;border-radius:16px;padding:32px 40px;text-align:center;min-width:200px;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+    .spinner-border{width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px;}
+    .spinner-box p{font-size:.9rem;color:var(--text-muted);font-weight:600;margin:0;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    /* LAYOUT */
+    .reg-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,var(--primary) 0%,#025a96 60%,#0370ba 100%);position:relative;overflow:hidden;}
+    .reg-wrap::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+    .reg-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-lg);width:100%;max-width:520px;overflow:hidden;position:relative;z-index:1;}
+    .reg-header{background:var(--primary);padding:28px 32px;text-align:center;color:#fff;}
+    .reg-header i{font-size:2.2rem;color:var(--gold);}
+    .reg-header h1{font-size:1.45rem;font-weight:900;margin-top:8px;}
+    .reg-header p{margin-top:5px;opacity:.75;font-size:.88rem;}
+    .reg-body{padding:28px;}
+    /* TABS */
+    .tab-switch{display:flex;background:var(--bg);border-radius:var(--radius-sm);padding:4px;margin-bottom:24px;gap:4px;}
+    .tab-switch-btn{flex:1;padding:10px;border:none;border-radius:calc(var(--radius-sm) - 2px);background:transparent;font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+    .tab-switch-btn.active{background:#fff;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+    /* FORM */
+    .field-label{display:block;font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:6px;margin-top:16px;}
+    .field-label:first-of-type{margin-top:0;}
+    .field-req{color:var(--danger);margin-right:2px;}
+    .form-control{width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;font-family:'Tajawal',sans-serif;font-size:.92rem;color:var(--text);background:#fff;outline:none;transition:border-color .2s,box-shadow .2s;}
+    .form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(1,73,121,.10);}
+    .form-control.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(192,57,43,.10);}
+    .field-hint{font-size:.78rem;color:var(--text-muted);margin-top:4px;}
+    .field-error{font-size:.78rem;color:var(--danger);margin-top:4px;display:none;}
+    /* STEPS */
+    .step-indicator{display:flex;align-items:center;gap:8px;margin-bottom:22px;}
+    .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;border:2px solid var(--border);color:var(--text-muted);transition:all .3s;flex-shrink:0;}
+    .step-dot.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+    .step-dot.done{background:var(--success);border-color:var(--success);color:#fff;}
+    .step-line{flex:1;height:2px;background:var(--border);border-radius:1px;transition:background .3s;}
+    .step-line.done{background:var(--success);}
+    /* BUTTONS */
+    .btn-primary-sard{background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px 20px;font-family:'Tajawal',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:20px;}
+    .btn-primary-sard:hover{background:var(--primary-dk);transform:translateY(-1px);}
+    .btn-primary-sard:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .btn-outline-sard{background:transparent;color:var(--primary);border:1.5px solid var(--primary);border-radius:var(--radius-sm);padding:11px 20px;font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:12px;}
+    .btn-outline-sard:hover{background:var(--primary);color:#fff;}
+    .btn-row{display:flex;gap:10px;margin-top:20px;}
+    .btn-row .btn-outline-sard,.btn-row .btn-primary-sard{flex:1;margin-top:0;}
+    /* CODE CHECK */
+    .code-wrap{display:flex;gap:8px;align-items:flex-end;}
+    .code-wrap .form-control{flex:1;}
+    .btn-check-code{background:var(--primary-lt);color:var(--primary);border:1.5px solid rgba(1,73,121,.2);border-radius:var(--radius-sm);padding:11px 14px;font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+    .btn-check-code:hover{background:var(--primary);color:#fff;}
+    .code-status{font-size:.82rem;margin-top:5px;min-height:18px;}
+    .code-ok{color:var(--success);}
+    .code-taken{color:var(--danger);}
+    .code-checking{color:var(--text-muted);}
+    /* SUCCESS */
+    .success-card{text-align:center;padding:10px 0 4px;}
+    .success-icon{width:72px;height:72px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2rem;color:var(--success);}
+    .link-box{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:10px;margin:14px 0 8px;}
+    .link-box input{flex:1;border:none;background:transparent;font-family:'Tajawal',sans-serif;font-size:.85rem;color:var(--primary);font-weight:600;direction:ltr;text-align:left;outline:none;}
+    .btn-copy{background:var(--primary-lt);color:var(--primary);border:1.5px solid rgba(1,73,121,.2);border-radius:var(--radius-sm);padding:8px 12px;cursor:pointer;font-size:.85rem;transition:all .2s;}
+    .btn-copy:hover{background:var(--primary);color:#fff;}
+    /* UTILS */
+    .mt-2{margin-top:8px;}.mt-3{margin-top:12px;}.text-center{text-align:center;}.d-flex{display:flex;}.align-center{align-items:center;}.gap-2{gap:8px;}
+    .text-muted{color:var(--text-muted);font-size:.85rem;}
+    .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text-muted);font-size:.82rem;}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
   </style>
 </head>
 <body>
 
 <div id="spinner" class="spinner-overlay" style="display:none;">
   <div class="spinner-box">
-    <div class="spinner-border text-primary" style="width:48px;height:48px;border-width:4px;--bs-primary:#014979;"></div>
-    <p>جارٍ المعالجة...</p>
+    <div class="spinner-border"></div>
+    <p id="spinnerMsg">جارٍ المعالجة...</p>
   </div>
 </div>
 
 <div class="reg-wrap">
-  <div class="reg-card animate-in">
+  <div class="reg-card" style="animation:fadeUp .35s ease;">
     <div class="reg-header">
       <i class="fas fa-quran"></i>
       <h1>برنامج السرد</h1>
-      <p>انضم أو أنشئ مجمعك</p>
+      <p>إدارة تسميع القرآن الكريم</p>
     </div>
     <div class="reg-body">
 
-      <!-- تبديل تسجيل / دخول -->
       <div class="tab-switch" id="mainTabs">
         <button class="tab-switch-btn active" onclick="switchTab('join')">الانضمام لمجمع</button>
         <button class="tab-switch-btn" onclick="switchTab('create')">إنشاء مجمع جديد</button>
@@ -62,25 +103,33 @@
 
       <!-- ══════ انضمام لمجمع ══════ -->
       <div id="tabJoin">
-        <label class="field-label">رمز المجمع</label>
-        <input type="text" id="joinCode" class="form-control" placeholder="أدخل رمز المجمع..." style="text-transform:uppercase;direction:ltr;"/>
+        <label class="field-label">رمز المجمع <span class="field-req">*</span></label>
+        <input type="text" id="joinCode" class="form-control" placeholder="مثال: RAHMA" style="text-transform:uppercase;direction:ltr;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+        <span class="field-hint">اطلب رمز المجمع من المشرف</span>
 
-        <label class="field-label">اسمك الثنائي</label>
+        <label class="field-label">اسمك الثنائي <span class="field-req">*</span></label>
         <input type="text" id="joinName" class="form-control" placeholder="مثال: محمد عبدالله"/>
 
-        <label class="field-label">البريد الإلكتروني</label>
+        <label class="field-label">البريد الإلكتروني <span class="field-req">*</span></label>
         <input type="email" id="joinEmail" class="form-control" placeholder="example@email.com" style="direction:ltr;"/>
 
-        <label class="field-label">كلمة المرور</label>
+        <label class="field-label">رقم الجوال <span class="field-req">*</span></label>
+        <input type="tel" id="joinPhone" class="form-control" placeholder="05xxxxxxxx"/>
+        <span class="field-hint">مثال: 0512345678</span>
+
+        <label class="field-label">كلمة المرور <span class="field-req">*</span></label>
         <input type="password" id="joinPassword" class="form-control" placeholder="٦ أحرف على الأقل"/>
+        <span id="joinPasswordHint" class="field-hint">ستستخدمها لتسجيل الدخول لاحقاً</span>
 
-        <label class="field-label">رقم الجوال <span style="color:var(--danger);">*</span></label>
-        <input type="tel" id="joinPhone" class="form-control" placeholder="05xxxxxxxx" required/>
+        <label class="field-label">تأكيد كلمة المرور <span class="field-req">*</span></label>
+        <input type="password" id="joinPasswordConfirm" class="form-control" placeholder="أعد كتابة كلمة المرور"/>
 
-        <button class="btn-primary-sard w-100 mt-3" onclick="doJoin()" style="justify-content:center;">
+        <button class="btn-primary-sard" onclick="doJoin()">
           <i class="fas fa-user-plus"></i> تقديم طلب الانضمام
         </button>
-        <p class="text-muted text-center mt-3" style="font-size:.82rem;">لديك حساب؟ <a href="index.html" style="color:var(--primary);font-weight:700;">دخول مباشر</a></p>
+
+        <div class="divider">أو</div>
+        <p class="text-muted text-center">لديك حساب؟ <a href="index.html" style="color:var(--primary);font-weight:700;">دخول مباشر</a></p>
       </div>
 
       <!-- ══════ إنشاء مجمع ══════ -->
@@ -95,54 +144,58 @@
 
         <!-- الخطوة 1: بيانات المجمع -->
         <div id="createStep1">
-          <label class="field-label">اسم المجمع</label>
+          <label class="field-label">اسم المجمع <span class="field-req">*</span></label>
           <input type="text" id="complexName" class="form-control" placeholder="مثال: مجمع الرحمة لتحفيظ القرآن"/>
 
-          <label class="field-label">رمز المجمع (سيكون جزء من الرابط)</label>
-          <div style="display:flex;gap:8px;">
-            <input type="text" id="complexCode" class="form-control" placeholder="مثال: RAHMA" style="text-transform:uppercase;direction:ltr;flex:1;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
-            <button class="btn-outline-sard" onclick="checkCodeAvailable()" style="white-space:nowrap;padding:10px 14px;"><i class="fas fa-search"></i> تحقق</button>
+          <label class="field-label">رمز المجمع <span class="field-req">*</span></label>
+          <div class="code-wrap">
+            <input type="text" id="complexCode" class="form-control" placeholder="مثال: RAHMA" style="text-transform:uppercase;direction:ltr;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');clearCodeStatus()"/>
+            <button class="btn-check-code" onclick="checkCodeAvailable()"><i class="fas fa-search"></i> تحقق</button>
           </div>
-          <p class="text-muted" style="font-size:.78rem;margin-top:4px;">٣-١٠ أحرف إنجليزية وأرقام فقط</p>
-          <div id="codeStatus" style="margin-top:4px;"></div>
+          <span class="field-hint">٣-١٠ أحرف إنجليزية وأرقام فقط — سيكون جزءاً من رابط المجمع</span>
+          <div id="codeStatus" class="code-status"></div>
 
-          <button class="btn-primary-sard w-100 mt-3" onclick="goStep2()" style="justify-content:center;">
+          <button class="btn-primary-sard" onclick="goStep2()">
             التالي <i class="fas fa-arrow-left"></i>
           </button>
         </div>
 
         <!-- الخطوة 2: بيانات المشرف -->
         <div id="createStep2" style="display:none;">
-          <label class="field-label">اسمك (المشرف)</label>
+          <label class="field-label">اسمك (المشرف) <span class="field-req">*</span></label>
           <input type="text" id="supervisorName" class="form-control" placeholder="اسمك الثنائي"/>
 
-          <label class="field-label">البريد الإلكتروني</label>
+          <label class="field-label">البريد الإلكتروني <span class="field-req">*</span></label>
           <input type="email" id="supervisorEmail" class="form-control" placeholder="example@email.com" style="direction:ltr;"/>
 
-          <label class="field-label">كلمة المرور</label>
+          <label class="field-label">رقم الجوال <span class="field-req">*</span></label>
+          <input type="tel" id="supervisorPhone" class="form-control" placeholder="05xxxxxxxx"/>
+          <span class="field-hint">سيُستخدم لتسجيل الدخول بدلاً من البريد</span>
+
+          <label class="field-label">كلمة المرور <span class="field-req">*</span></label>
           <input type="password" id="supervisorPassword" class="form-control" placeholder="٦ أحرف على الأقل"/>
 
-          <label class="field-label">رقم الجوال <span style="color:var(--danger);">*</span></label>
-          <input type="tel" id="supervisorPhone" class="form-control" placeholder="05xxxxxxxx" required/>
+          <label class="field-label">تأكيد كلمة المرور <span class="field-req">*</span></label>
+          <input type="password" id="supervisorPasswordConfirm" class="form-control" placeholder="أعد كتابة كلمة المرور"/>
 
-          <div class="d-flex gap-2 mt-3">
-            <button class="btn-outline-sard" onclick="goStep(1)" style="flex:1;justify-content:center;"><i class="fas fa-arrow-right"></i> السابق</button>
-            <button class="btn-primary-sard" onclick="doCreateComplex()" style="flex:2;justify-content:center;"><i class="fas fa-plus-circle"></i> إنشاء المجمع</button>
+          <div class="btn-row">
+            <button class="btn-outline-sard" onclick="goStep(1)"><i class="fas fa-arrow-right"></i> السابق</button>
+            <button class="btn-primary-sard" id="createBtn" onclick="doCreateComplex()" style="margin-top:0;"><i class="fas fa-plus-circle"></i> إنشاء المجمع</button>
           </div>
         </div>
 
         <!-- الخطوة 3: النجاح -->
         <div id="createStep3" style="display:none;" class="success-card">
           <div class="success-icon"><i class="fas fa-check"></i></div>
-          <h3 style="font-weight:800;color:var(--success);margin-bottom:8px;">تم إنشاء المجمع!</h3>
-          <p class="text-muted" style="font-size:.88rem;margin-bottom:16px;">رابط المجمع الخاص بك:</p>
+          <h3 style="font-weight:900;color:var(--success);margin-bottom:8px;">تم إنشاء المجمع!</h3>
+          <p class="text-muted mt-2">رابط الانضمام للمسمّعين:</p>
           <div class="link-box">
             <input type="text" id="generatedLink" readonly/>
-            <button onclick="copyLink()" class="btn-outline-sard" style="padding:8px 12px;"><i class="fas fa-copy"></i></button>
+            <button class="btn-copy" onclick="copyLink()"><i class="fas fa-copy"></i></button>
           </div>
-          <p class="text-muted" style="font-size:.8rem;margin-bottom:20px;">شارك هذا الرابط مع المسمّعين للانضمام للمجمع</p>
-          <a id="goToAppLink" href="#" class="btn-primary-sard" style="text-decoration:none;justify-content:center;display:inline-flex;width:100%;">
-            <i class="fas fa-sign-in-alt"></i> الدخول للنظام
+          <p class="text-muted" style="font-size:.78rem;margin-bottom:20px;">شارك هذا الرابط مع المسمّعين ليتمكنوا من الانضمام</p>
+          <a id="goToAppLink" href="#" class="btn-primary-sard" style="text-decoration:none;margin-top:0;">
+            <i class="fas fa-sign-in-alt"></i> الدخول للوحة المشرف
           </a>
         </div>
       </div>
@@ -154,141 +207,232 @@
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script>
-let _currentStep = 1;
-let _createdComplex = null;
+// ─── مساعدات ───
+function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function showSpin(msg){document.getElementById('spinner').style.display='flex';document.getElementById('spinnerMsg').textContent=msg||'جارٍ المعالجة...';}
+function hideSpin(){document.getElementById('spinner').style.display='none';}
+function toast(msg,icon){if(typeof Swal!=='undefined')Swal.fire({toast:true,position:'bottom-end',icon:icon||'success',title:escH(msg),showConfirmButton:false,timer:icon==='error'?5000:3000,timerProgressBar:true});}
+function markError(id){const el=document.getElementById(id);if(el){el.classList.add('error');setTimeout(()=>el.classList.remove('error'),3000);}}
+function validatePhone(p){return /^05[0-9]{8}$/.test(String(p).replace(/\s/g,''));}
+function validateEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 
-function switchTab(tab) {
-  const isJoin = tab === 'join';
-  document.getElementById('tabJoin').style.display   = isJoin ? 'block' : 'none';
-  document.getElementById('tabCreate').style.display = isJoin ? 'none'  : 'block';
-  document.querySelectorAll('.tab-switch-btn').forEach((b,i)=>b.classList.toggle('active', (i===0)===isJoin));
+// ─── تبديل التبويبات ───
+function switchTab(tab){
+  const isJoin=tab==='join';
+  document.getElementById('tabJoin').style.display=isJoin?'block':'none';
+  document.getElementById('tabCreate').style.display=isJoin?'none':'block';
+  document.querySelectorAll('.tab-switch-btn').forEach((b,i)=>b.classList.toggle('active',(i===0)===isJoin));
 }
 
 // ─── التحقق من رمز المجمع ───
-async function checkCodeAvailable() {
-  const code = document.getElementById('complexCode').value.trim().toUpperCase();
-  const status = document.getElementById('codeStatus');
-  if (code.length < 3 || code.length > 10) { status.innerHTML = '<span style="color:var(--warning);font-size:.82rem;">الرمز يجب أن يكون بين ٣-١٠ أحرف</span>'; return; }
-  status.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">جارٍ التحقق...</span>';
-  try {
+let _codeChecked = false;
+let _checkedCode = '';
+
+function clearCodeStatus(){
+  _codeChecked=false;_checkedCode='';
+  document.getElementById('codeStatus').innerHTML='';
+}
+
+async function checkCodeAvailable(){
+  const code=document.getElementById('complexCode').value.trim().toUpperCase();
+  const status=document.getElementById('codeStatus');
+  if(code.length<3||code.length>10){
+    status.innerHTML='<span class="code-taken"><i class="fas fa-times-circle"></i> الرمز بين ٣-١٠ أحرف</span>';
+    _codeChecked=false;return;
+  }
+  status.innerHTML='<span class="code-checking"><i class="fas fa-spinner fa-spin"></i> جارٍ التحقق...</span>';
+  try{
     await SardAPI.getComplexByCode(code);
-    status.innerHTML = '<span style="color:var(--danger);font-size:.82rem;"><i class="fas fa-times-circle"></i> هذا الرمز مستخدم، جرّب رمزاً آخر</span>';
-  } catch {
-    status.innerHTML = '<span style="color:var(--success);font-size:.82rem;"><i class="fas fa-check-circle"></i> الرمز متاح!</span>';
+    status.innerHTML='<span class="code-taken"><i class="fas fa-times-circle"></i> هذا الرمز مستخدم، جرّب رمزاً آخر</span>';
+    _codeChecked=false;
+  }catch{
+    status.innerHTML='<span class="code-ok"><i class="fas fa-check-circle"></i> الرمز متاح!</span>';
+    _codeChecked=true;_checkedCode=code;
   }
 }
 
-function goStep(n) {
-  [1,2,3].forEach(i => document.getElementById('createStep'+i).style.display = i===n?'block':'none');
-  [1,2,3].forEach(i => { const d=document.getElementById('dot'+i); d.className='step-dot'+(i<n?' done':i===n?' active':''); });
-  if(document.getElementById('line12')) document.getElementById('line12').className='step-line'+(n>1?' done':'');
-  if(document.getElementById('line23')) document.getElementById('line23').className='step-line'+(n>2?' done':'');
-  _currentStep = n;
+// ─── خطوات إنشاء المجمع ───
+function goStep(n){
+  [1,2,3].forEach(i=>document.getElementById('createStep'+i).style.display=i===n?'block':'none');
+  [1,2,3].forEach(i=>{
+    const d=document.getElementById('dot'+i);
+    if(!d)return;
+    d.className='step-dot'+(i<n?' done':i===n?' active':'');
+  });
+  const l12=document.getElementById('line12'),l23=document.getElementById('line23');
+  if(l12)l12.className='step-line'+(n>1?' done':'');
+  if(l23)l23.className='step-line'+(n>2?' done':'');
 }
 
-function goStep2() {
-  const name = document.getElementById('complexName').value.trim();
-  const code = document.getElementById('complexCode').value.trim().toUpperCase();
-  if (!name) { showToast('أدخل اسم المجمع','warning'); return; }
-  if (code.length < 3) { showToast('الرمز يجب ٣ أحرف على الأقل','warning'); return; }
+function goStep2(){
+  const name=document.getElementById('complexName').value.trim();
+  const code=document.getElementById('complexCode').value.trim().toUpperCase();
+  if(!name){toast('أدخل اسم المجمع','warning');markError('complexName');return;}
+  if(code.length<3){toast('الرمز يجب أن يكون ٣ أحرف على الأقل','warning');markError('complexCode');return;}
+  if(_codeChecked&&_checkedCode!==code){
+    toast('الرمز تغيّر بعد التحقق، تحقق مجدداً','warning');
+    clearCodeStatus();return;
+  }
   goStep(2);
 }
 
-// ─── إنشاء المجمع ───
-async function doCreateComplex() {
-  const name     = document.getElementById('complexName').value.trim();
-  const code     = document.getElementById('complexCode').value.trim().toUpperCase();
-  const supName  = document.getElementById('supervisorName').value.trim();
-  const email    = document.getElementById('supervisorEmail').value.trim();
-  const password = document.getElementById('supervisorPassword').value;
-  const phone    = document.getElementById('supervisorPhone').value.trim();
+// ─── إنشاء المجمع — الترتيب الصحيح ───
+// 1. Auth أولاً (ما يُنشئ شيء في DB إذا فشل)
+// 2. ثم المجمع في DB
+// 3. ثم profile المشرف
+// لو فشل أي خطوة بعد الـ Auth — نحذف الـ Auth user
+async function doCreateComplex(){
+  const complexName = document.getElementById('complexName').value.trim();
+  const code        = document.getElementById('complexCode').value.trim().toUpperCase();
+  const supName     = document.getElementById('supervisorName').value.trim();
+  const email       = document.getElementById('supervisorEmail').value.trim();
+  const phone       = document.getElementById('supervisorPhone').value.trim().replace(/\s/g,'');
+  const password    = document.getElementById('supervisorPassword').value;
+  const confirm     = document.getElementById('supervisorPasswordConfirm').value;
 
-  if (!supName || !email || !password || !phone) { showToast('جميع الحقول مطلوبة بما فيها رقم الجوال','warning'); return; }
-  if (!/^05[0-9]{8}$/.test(phone.replace(/\s/g,''))) { showToast('رقم الجوال غير صحيح (مثال: 0512345678)','warning'); return; }
-  if (password.length < 6) { showToast('كلمة المرور ٦ أحرف على الأقل','warning'); return; }
+  // ─ تحقق من الحقول ─
+  if(!supName){toast('أدخل اسمك (المشرف)','warning');markError('supervisorName');return;}
+  if(!email||!validateEmail(email)){toast('البريد الإلكتروني غير صحيح','warning');markError('supervisorEmail');return;}
+  if(!validatePhone(phone)){toast('رقم الجوال غير صحيح (مثال: 0512345678)','warning');markError('supervisorPhone');return;}
+  if(password.length<6){toast('كلمة المرور ٦ أحرف على الأقل','warning');markError('supervisorPassword');return;}
+  if(password!==confirm){toast('كلمتا المرور غير متطابقتين','warning');markError('supervisorPasswordConfirm');return;}
 
-  showSpinner('جارٍ إنشاء المجمع...');
-  try {
-    // 1. إنشاء المجمع
-    const complex = await SardAPI.createComplex(name, code);
+  // ─ تحقق من رمز المجمع مرة أخيرة (حتى لو ما تحقق يدوياً) ─
+  if(!complexName||!code||code.length<3){toast('ارجع وأكمل بيانات المجمع','warning');goStep(1);return;}
 
-    // 2. تسجيل المشرف في Supabase Auth
-    const auth = await SardAPI.signUp(email, password, { name: supName });
+  const btn=document.getElementById('createBtn');
+  if(btn){btn.disabled=true;}
+  showSpin('جارٍ التحقق من رمز المجمع...');
 
-    if (!auth.user) throw new Error('فشل إنشاء الحساب');
+  let authUser=null;
+  let complexCreated=null;
 
-    // 3. إنشاء profile المشرف (active مباشرة)
-    await SardAPI.createUserProfile(auth.user.id, supName, 'supervisor', complex.id, phone, 'active', email);
+  try{
+    // ─ خطوة 0: التحقق من أن الرمز غير مستخدم (آخر فرصة) ─
+    showSpin('جارٍ التحقق من رمز المجمع...');
+    try{
+      await SardAPI.getComplexByCode(code);
+      // إذا نجح → الرمز موجود
+      hideSpin();
+      if(btn)btn.disabled=false;
+      toast('رمز المجمع "'+escH(code)+'" مستخدم من قبل، اختر رمزاً آخر','error');
+      goStep(1);
+      document.getElementById('codeStatus').innerHTML='<span class="code-taken"><i class="fas fa-times-circle"></i> هذا الرمز مستخدم</span>';
+      _codeChecked=false;
+      return;
+    }catch{/* الرمز متاح - نكمل */}
 
-    _createdComplex = complex;
-    const link = location.origin + location.pathname.replace('register.html','') + 'index.html?c=' + code;
-    document.getElementById('generatedLink').value = link;
-    document.getElementById('goToAppLink').href = 'supervisor.html?c=' + code;
+    // ─ خطوة 1: تسجيل الحساب في Auth أولاً ─
+    showSpin('جارٍ إنشاء الحساب...');
+    const auth=await SardAPI.signUp(email,password,{name:supName});
+    if(!auth.user)throw new Error('فشل إنشاء الحساب، حاول مجدداً');
+    authUser=auth.user;
 
-    hideSpinner();
+    // ─ خطوة 2: إنشاء المجمع في DB ─
+    showSpin('جارٍ إنشاء المجمع...');
+    complexCreated=await SardAPI.createComplex(complexName,code);
+
+    // ─ خطوة 3: إنشاء profile المشرف ─
+    showSpin('جارٍ إعداد الحساب...');
+    await SardAPI.createUserProfile(authUser.id,supName,'supervisor',complexCreated.id,phone,'active',email);
+
+    // ─ النجاح ─
+    const base=location.origin+location.pathname.replace('register.html','');
+    const link=base+'index.html?c='+code;
+    document.getElementById('generatedLink').value=link;
+    document.getElementById('goToAppLink').href='supervisor.html?c='+code;
+    hideSpin();
     goStep(3);
-  } catch(e) {
-    hideSpinner();
-    if (e.message && e.message.includes('already registered')) {
-      showToast('هذا البريد مسجل مسبقاً، استخدم بريداً آخر أو ادخل مباشرة', 'error');
-    } else {
-      showToast('خطأ: ' + (e.message || e), 'error');
+
+  }catch(e){
+    hideSpin();
+    if(btn)btn.disabled=false;
+
+    // ─ Rollback: لو المجمع أُنشئ لكن profile فشل ─
+    if(complexCreated&&authUser){
+      try{await SardAPI.deleteComplex(complexCreated.id);}catch(_){}
+    }
+    // ملاحظة: لا نقدر نحذف Auth user من client-side بدون admin key
+    // لكن المجمع لن يُنشأ — المستخدم يمكنه المحاولة مرة أخرى
+
+    const msg=e.message||String(e);
+    if(msg.includes('already registered')||msg.includes('already been registered')){
+      toast('هذا البريد مسجل مسبقاً. استخدم بريداً آخر أو ادخل مباشرة من الصفحة الرئيسية','error');
+    }else if(msg.includes('مستخدم')||msg.includes('duplicate')||msg.includes('unique')){
+      toast('رمز المجمع مستخدم من قبل، اختر رمزاً آخر','error');
+      goStep(1);clearCodeStatus();
+    }else{
+      toast('خطأ: '+msg,'error');
     }
   }
 }
 
 // ─── الانضمام لمجمع ───
-async function doJoin() {
+async function doJoin(){
   const code     = document.getElementById('joinCode').value.trim().toUpperCase();
   const name     = document.getElementById('joinName').value.trim();
   const email    = document.getElementById('joinEmail').value.trim();
+  const phone    = document.getElementById('joinPhone').value.trim().replace(/\s/g,'');
   const password = document.getElementById('joinPassword').value;
-  const phone    = document.getElementById('joinPhone').value.trim();
+  const confirm  = document.getElementById('joinPasswordConfirm').value;
 
-  if (!code || !name || !email || !password || !phone) { showToast('جميع الحقول مطلوبة بما فيها رقم الجوال','warning'); return; }
-  if (!/^05[0-9]{8}$/.test(phone.replace(/\s/g,''))) { showToast('رقم الجوال غير صحيح (مثال: 0512345678)','warning'); return; }
-  if (password.length < 6) { showToast('كلمة المرور ٦ أحرف على الأقل','warning'); return; }
+  // ─ تحقق من الحقول ─
+  if(!code){toast('أدخل رمز المجمع','warning');markError('joinCode');return;}
+  if(!name){toast('أدخل اسمك الثنائي','warning');markError('joinName');return;}
+  if(!email||!validateEmail(email)){toast('البريد الإلكتروني غير صحيح','warning');markError('joinEmail');return;}
+  if(!validatePhone(phone)){toast('رقم الجوال غير صحيح (مثال: 0512345678)','warning');markError('joinPhone');return;}
+  if(password.length<6){toast('كلمة المرور ٦ أحرف على الأقل','warning');markError('joinPassword');return;}
+  if(password!==confirm){toast('كلمتا المرور غير متطابقتين','warning');markError('joinPasswordConfirm');return;}
 
-  showSpinner('جارٍ التسجيل...');
-  try {
-    // التحقق من وجود المجمع
-    const complex = await SardAPI.getComplexByCode(code);
+  showSpin('جارٍ التحقق من رمز المجمع...');
+  try{
+    // ─ التحقق من وجود المجمع ─
+    const complex=await SardAPI.getComplexByCode(code);
 
-    // تسجيل المستخدم في Auth
-    const auth = await SardAPI.signUp(email, password, { name });
-    if (!auth.user) throw new Error('فشل إنشاء الحساب');
+    // ─ تسجيل الحساب في Auth ─
+    showSpin('جارٍ إنشاء الحساب...');
+    const auth=await SardAPI.signUp(email,password,{name});
+    if(!auth.user)throw new Error('فشل إنشاء الحساب');
 
-    // معرفة وضع القبول
-    const settings = await SardAPI.getSettings(complex.id);
-    const autoAccept = !settings || settings.registration_mode !== 'manual';
+    // ─ معرفة وضع القبول ─
+    showSpin('جارٍ التسجيل...');
+    const settings=await SardAPI.getSettings(complex.id);
+    const autoAccept=!settings||settings.registration_mode!=='manual';
 
-    // إنشاء profile
-    await SardAPI.createUserProfile(auth.user.id, name, 'reciter', complex.id, phone, autoAccept ? 'active' : 'pending', email);
+    // ─ إنشاء profile ─
+    await SardAPI.createUserProfile(auth.user.id,name,'reciter',complex.id,phone,autoAccept?'active':'pending',email);
 
-    hideSpinner();
+    hideSpin();
 
-    if (autoAccept) {
-      // تسجيل الدخول مباشرة بعد التسجيل
-      try { await SardAPI.signIn(email, password); } catch(_){}
-      await Swal.fire({ icon:'success', title:'تم التسجيل!', text:'يمكنك الدخول الآن.', confirmButtonColor:'#014979' });
-      location.href = 'index.html?c=' + code;
-    } else {
-      await Swal.fire({ icon:'info', title:'تم إرسال الطلب', text:'سيتم مراجعة طلبك من قبل مشرف المجمع.', confirmButtonColor:'#014979' });
-      location.href = 'index.html?c=' + code;
+    if(autoAccept){
+      try{await SardAPI.signIn(email,password);}catch(_){}
+      await Swal.fire({icon:'success',title:'تم التسجيل بنجاح!',html:'مرحباً <b>'+escH(name)+'</b>،<br>يمكنك البدء باستخدام النظام.',confirmButtonColor:'#014979',confirmButtonText:'دخول'});
+      location.href='index.html?c='+code;
+    }else{
+      await Swal.fire({icon:'info',title:'تم إرسال طلبك!',html:'سيتم مراجعة طلبك من مشرف مجمع <b>'+escH(complex.name)+'</b>.<br>ستُبلَّغ عند القبول.',confirmButtonColor:'#014979',confirmButtonText:'حسناً'});
+      location.href='index.html?c='+code;
     }
-  } catch(e) {
-    hideSpinner();
-    if (e.message && e.message.includes('already registered')) {
-      showToast('هذا البريد مسجل مسبقاً، ادخل مباشرة من الصفحة الرئيسية', 'error');
-    } else {
-      showToast('خطأ: ' + (e.message || e), 'error');
+  }catch(e){
+    hideSpin();
+    const msg=e.message||String(e);
+    if(msg.includes('رمز المجمع غير صحيح')||msg.includes('رمز المجمع')){
+      toast('رمز المجمع غير صحيح أو غير موجود','error');markError('joinCode');
+    }else if(msg.includes('already registered')||msg.includes('already been registered')){
+      toast('هذا البريد مسجل مسبقاً. ادخل مباشرة من الصفحة الرئيسية','error');markError('joinEmail');
+    }else{
+      toast('خطأ: '+msg,'error');
     }
   }
 }
 
-function copyLink() {
-  const val = document.getElementById('generatedLink').value;
-  navigator.clipboard.writeText(val).then(() => showToast('تم النسخ!','success')).catch(() => showToast('يرجى النسخ يدوياً','warning'));
+function copyLink(){
+  const val=document.getElementById('generatedLink').value;
+  navigator.clipboard.writeText(val)
+    .then(()=>toast('تم نسخ الرابط!','success'))
+    .catch(()=>{
+      document.getElementById('generatedLink').select();
+      toast('حدد الرابط وانسخه يدوياً','warning');
+    });
 }
 </script>
 </body>
