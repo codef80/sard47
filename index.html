@@ -324,7 +324,7 @@ async function doStaffLogin2(){
   const email=document.getElementById('staffEmail2').value.trim(),pass=document.getElementById('staffPassword2').value;
   if(!email||!pass){showToast('أدخل البريد وكلمة المرور','warning');return;}
   showSpinner();
-  try{await SardAPI.signIn(email,pass);const prof=await SardAPI.getCurrentUser();if(!prof)throw new Error('لا يوجد حساب مرتبط');if(prof.status==='pending'){hideSpinner();showReciterWrap('pending');return;}if(prof.status==='rejected'){await SardAPI.signOut();hideSpinner();showToast('تم رفض حسابك','error');return;}STATE.user=prof;STATE.teacherName=prof.name||'';STATE.isGuest=false;await loadData();}
+  try{await SardAPI.signIn(email,pass,STATE.complexCode);const prof=await SardAPI.getCurrentUser();if(!prof)throw new Error('لا يوجد حساب مرتبط');if(prof.status==='pending'){hideSpinner();showReciterWrap('pending');return;}if(prof.status==='rejected'){await SardAPI.signOut();hideSpinner();showToast('تم رفض حسابك','error');return;}STATE.user=prof;STATE.teacherName=prof.name||'';STATE.isGuest=false;await loadData();}
   catch(e){hideSpinner();showToast('خطأ: '+(e.message||e),'error');}
 }
 
@@ -334,7 +334,7 @@ async function doStaffLogin(){
   document.getElementById('staffModal').classList.remove('open');showSpinner();
   try{
     const cx=await SardAPI.getComplexByCode(code);STATE.complexId=cx.id;STATE.complexCode=code;STATE.complexName=cx.name;localStorage.setItem('sard_complex_code',code);
-    await SardAPI.signIn(email,pass);const prof=await SardAPI.getCurrentUser();if(!prof)throw new Error('لا يوجد حساب مرتبط');
+    await SardAPI.signIn(email,pass,code);const prof=await SardAPI.getCurrentUser();if(!prof)throw new Error('لا يوجد حساب مرتبط');
     if(prof.status==='pending'){hideSpinner();document.getElementById('complexTag').textContent=cx.name;showReciterWrap('pending');document.getElementById('landingWrap').style.display='none';document.getElementById('reciterWrap').style.display='flex';return;}
     if(prof.status==='rejected'){await SardAPI.signOut();hideSpinner();showToast('تم رفض حسابك','error');return;}
     STATE.user=prof;STATE.teacherName=prof.name||'';

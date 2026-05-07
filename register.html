@@ -324,7 +324,7 @@ async function doCreateComplex(){
 
     // ─ خطوة 1: تسجيل الحساب في Auth أولاً ─
     showSpin('جارٍ إنشاء الحساب...');
-    const auth=await SardAPI.signUp(email,password,{name:supName});
+    const auth=await SardAPI.signUp(email,password,{name:supName},code);
     if(!auth.user)throw new Error('فشل إنشاء الحساب، حاول مجدداً');
     authUser=auth.user;
 
@@ -334,7 +334,7 @@ async function doCreateComplex(){
 
     // ─ خطوة 3: إنشاء profile المشرف ─
     showSpin('جارٍ إعداد الحساب...');
-    await SardAPI.createUserProfile(authUser.id,supName,'supervisor',complexCreated.id,phone,'active',email);
+    await SardAPI.createUserProfile(authUser.id,supName,'supervisor',complexCreated.id,phone,'active',email,auth.authEmail);
 
     // ─ النجاح ─
     const base=location.origin+location.pathname.replace('register.html','');
@@ -357,7 +357,7 @@ async function doCreateComplex(){
 
     const msg=e.message||String(e);
     if(msg.includes('already registered')||msg.includes('already been registered')){
-      toast('هذا البريد مسجل مسبقاً. استخدم بريداً آخر أو ادخل مباشرة من الصفحة الرئيسية','error');
+      toast('هذا البريد مسجل مسبقاً في نفس المجمع. استخدم بريداً آخر أو ادخل مباشرة من الصفحة الرئيسية','error');
     }else if(msg.includes('مستخدم')||msg.includes('duplicate')||msg.includes('unique')){
       toast('رمز المجمع مستخدم من قبل، اختر رمزاً آخر','error');
       goStep(1);clearCodeStatus();
@@ -391,7 +391,7 @@ async function doJoin(){
 
     // ─ تسجيل الحساب في Auth ─
     showSpin('جارٍ إنشاء الحساب...');
-    const auth=await SardAPI.signUp(email,password,{name});
+    const auth=await SardAPI.signUp(email,password,{name},code);
     if(!auth.user)throw new Error('فشل إنشاء الحساب');
 
     // ─ معرفة وضع القبول ─
@@ -400,12 +400,12 @@ async function doJoin(){
     const autoAccept=!settings||settings.registration_mode!=='manual';
 
     // ─ إنشاء profile ─
-    await SardAPI.createUserProfile(auth.user.id,name,'reciter',complex.id,phone,autoAccept?'active':'pending',email);
+    await SardAPI.createUserProfile(auth.user.id,name,'reciter',complex.id,phone,autoAccept?'active':'pending',email,auth.authEmail);
 
     hideSpin();
 
     if(autoAccept){
-      try{await SardAPI.signIn(email,password);}catch(_){}
+      try{await SardAPI.signIn(email,password,code);}catch(_){}
       await Swal.fire({icon:'success',title:'تم التسجيل بنجاح!',html:'مرحباً <b>'+escH(name)+'</b>،<br>يمكنك البدء باستخدام النظام.',confirmButtonColor:'#014979',confirmButtonText:'دخول'});
       location.href='index.html?c='+code;
     }else{
@@ -418,7 +418,7 @@ async function doJoin(){
     if(msg.includes('رمز المجمع غير صحيح')||msg.includes('رمز المجمع')){
       toast('رمز المجمع غير صحيح أو غير موجود','error');markError('joinCode');
     }else if(msg.includes('already registered')||msg.includes('already been registered')){
-      toast('هذا البريد مسجل مسبقاً. ادخل مباشرة من الصفحة الرئيسية','error');markError('joinEmail');
+      toast('هذا البريد مسجل مسبقاً في نفس المجمع. ادخل مباشرة من الصفحة الرئيسية','error');markError('joinEmail');
     }else{
       toast('خطأ: '+msg,'error');
     }
