@@ -378,7 +378,7 @@ function fillCert(d){
   document.getElementById('certDesc').innerHTML=desc;
   function numFontSize(v){var l=String(v==null?'':v).trim().length;return l>=6?'3.8rem':l===5?'4.2rem':l===4?'4.6rem':l===3?'5rem':l===2?'5.5rem':'6rem';}
   var stats=[{num:fPart(d.partsSaved||0),label:'عدد الأجزاء\nالمحفوظة',color:'#014979',ring:'#014979'},{num:fPart(shownParts),label:'عدد الأجزاء\nالمعروضة',color:'#014979',ring:'#014979'},{num:fPart(passedParts),label:'مجتاز',color:'#1a7a4a',ring:'#1a7a4a'},{num:fPart(failedParts),label:'راسب',color:'#c0392b',ring:'#c0392b'},{num:studentPct+'%',label:'نسبة\nالطالب',color:pctCol,ring:pctCol}];
-  document.getElementById('certStats').innerHTML=stats.map(function(s){return'<div class="cert-stat-item"><div class="cert-stat-ring" style="background:conic-gradient('+s.ring+' 0%,#e2e8f0 0%);box-shadow:0 3px 10px '+s.ring+'33;"><div class="cert-stat-inner"></div><span class="cert-stat-num" style="font-size:'+numFontSize(s.num)+';color:'+s.color+';">'+escH(String(s.num))+'</span></div><div class="cert-stat-label">'+s.label+'</div></div>';}).join('');
+  document.getElementById('certStats').innerHTML=stats.map(function(s){return'<div class="cert-stat-item"><div class="cert-stat-ring" style="background:'+s.ring+';box-shadow:0 3px 10px '+s.ring+'33;"><div class="cert-stat-inner"></div><span class="cert-stat-num" style="font-size:'+numFontSize(s.num)+';color:'+s.color+';">'+escH(String(s.num))+'</span></div><div class="cert-stat-label">'+s.label+'</div></div>';}).join('');
 }
 
 async function doCert(idx){
