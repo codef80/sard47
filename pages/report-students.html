@@ -66,7 +66,7 @@
     .cert-btn-close:hover{background:rgba(255,255,255,0.25);}
     /* CERT PREVIEW SHELL — مطابق للأصل */
     .cert-preview-shell{margin-top:56px;transform-origin:top center;transform:scale(var(--cert-scale));width:1593px;}
-    #certPaper{width:1593px;background:#fff;position:relative;overflow:hidden;border-radius:0;box-shadow:0 0 0 4px rgba(177,151,56,0.3),0 20px 60px rgba(0,0,0,0.6);direction:rtl;}
+    #certPaper{width:1593px;height:2560px;min-height:2560px;background:#fff;position:relative;overflow:hidden;border-radius:0;box-shadow:0 0 0 4px rgba(177,151,56,0.3),0 20px 60px rgba(0,0,0,0.6);direction:rtl;}
     .cert-bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse at 20% 20%,rgba(177,151,56,0.09) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(1,73,121,0.06) 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,#fff 0%,#fdfaf2 100%);}
     .cert-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:520px;color:rgba(177,151,56,0.045);z-index:0;pointer-events:none;line-height:1;font-family:serif;}
     .cert-corner{position:absolute;width:420px;height:420px;border-radius:50%;z-index:1;}
@@ -76,7 +76,7 @@
     .cert-corner.bot-left{bottom:-150px;left:-150px;background:radial-gradient(circle,rgba(1,73,121,0.09),transparent 70%);}
     .cert-wave-top,.cert-wave-bot{position:absolute;left:0;right:0;z-index:1;line-height:0;}
     .cert-wave-top{top:-36px;}.cert-wave-bot{bottom:0;}
-    .cert-wave-top svg,.cert-wave-bot svg{display:block;width:100%;}
+    .cert-wave-top svg,.cert-wave-bot svg{display:block;width:100%;height:180px;}
     .cert-content{position:relative;z-index:2;padding:300px 95px 210px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;}
     .cert-header{display:flex;align-items:center;gap:24px;width:100%;justify-content:center;margin-bottom:20px;}
     .cert-header-line{flex:1;height:5px;max-width:240px;border-radius:99px;}
@@ -397,17 +397,66 @@ async function doCert(idx){
 async function saveCert(){
   var actions=document.getElementById('certActions'),certPaper=document.getElementById('certPaper');
   if(actions)actions.style.display='none';
+  var holder=null;
   try{
+    if(!window.html2canvas)throw new Error('مكتبة حفظ الصورة لم يتم تحميلها');
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;
     await new Promise(function(res){requestAnimationFrame(function(){requestAnimationFrame(res);});});
-    var canvas=await html2canvas(certPaper,{scale:1,useCORS:true,backgroundColor:'#ffffff',logging:false,width:1593,height:2560});
+
+    holder=document.createElement('div');
+    holder.style.cssText='position:fixed;right:-99999px;top:0;width:1593px;height:2560px;overflow:hidden;background:#fff;z-index:-1;';
+    var exportPaper=certPaper.cloneNode(true);
+    exportPaper.id='certPaperExport';
+    exportPaper.style.width='1593px';
+    exportPaper.style.height='2560px';
+    exportPaper.style.minHeight='2560px';
+    exportPaper.style.transform='none';
+    exportPaper.style.boxShadow='none';
+    exportPaper.querySelectorAll('.cert-stat-ring').forEach(function(el){
+      var c=el.querySelector('.cert-stat-num');
+      var color=(c&&c.style&&c.style.color)||'#014979';
+      el.style.background=color;
+    });
+    holder.appendChild(exportPaper);
+    document.body.appendChild(holder);
+
+    var canvas=await html2canvas(exportPaper,{
+      scale:1,
+      useCORS:true,
+      allowTaint:false,
+      backgroundColor:'#ffffff',
+      logging:false,
+      width:1593,
+      height:2560,
+      windowWidth:1593,
+      windowHeight:2560,
+      scrollX:0,
+      scrollY:0,
+      foreignObjectRendering:false,
+      removeContainer:true
+    });
+
+    if(!canvas||!canvas.width||!canvas.height)throw new Error('تعذر تكوين صورة الشهادة');
     var out=document.createElement('canvas');out.width=1593;out.height=2560;
-    var ctx=out.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1593,2560);ctx.drawImage(canvas,0,0,1593,2560);
-    var link=document.createElement('a');
-    link.download='شهادة_'+(document.getElementById('certStudentName').textContent||'طالب').trim()+'.png';
-    link.href=out.toDataURL('image/png');document.body.appendChild(link);link.click();document.body.removeChild(link);
-  }catch(e){alert('تعذر حفظ الشهادة: '+e.message);}
-  finally{if(actions)actions.style.display='flex';}
+    var ctx=out.getContext('2d');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,1593,2560);ctx.drawImage(canvas,0,0,1593,2560);
+    var fileName='شهادة_'+(document.getElementById('certStudentName').textContent||'طالب').trim()+'.png';
+    var link=document.createElement('a');link.download=fileName;
+
+    if(out.toBlob){
+      var blob=await new Promise(function(resolve){out.toBlob(resolve,'image/png');});
+      if(!blob)throw new Error('تعذر تحويل الشهادة إلى صورة');
+      var url=URL.createObjectURL(blob);
+      link.href=url;document.body.appendChild(link);link.click();document.body.removeChild(link);
+      setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    }else{
+      link.href=out.toDataURL('image/png');document.body.appendChild(link);link.click();document.body.removeChild(link);
+    }
+  }catch(e){alert('تعذر حفظ الشهادة: '+(e&&e.message?e.message:e));}
+  finally{
+    if(holder&&holder.parentNode)holder.parentNode.removeChild(holder);
+    if(actions)actions.style.display='flex';
+  }
 }
 
 function closeCert(){document.getElementById('certOverlay').classList.remove('show');document.body.style.overflow='';}
