@@ -349,26 +349,44 @@ const SardAPI = {
   },
 
   // ── الحضور ──
+  // منطق السرد: التحضير تحضير برنامج واحد وليس تحضيرًا يوميًا.
+  // لذلك يتم جلب آخر حالة محفوظة لكل طالب بغض النظر عن التاريخ.
   async getAttendance(complexId,date){
     const{data,error}=await _sb.from('attendance')
       .select('student_id,halaqa_id,status,date')
       .eq('complex_id',complexId)
-      .eq('date',date);
+      .order('date',{ascending:false});
     if(error)return[];
-    return data||[];
+
+    const latestByStudent={};
+    (data||[]).forEach(r=>{
+      const sid=String(r.student_id||'');
+      if(sid&&!latestByStudent[sid])latestByStudent[sid]=r;
+    });
+    return Object.values(latestByStudent);
   },
 
   async saveAttendance(complexId,halaqaId,date,entries){
     if(!entries||!entries.length)return;
+
+    const studentIds=entries.map(e=>e.studentId).filter(Boolean);
+    if(!studentIds.length)return;
+
+    // نمنع تعدد التحضير لنفس الطالب عبر الأيام: احذف حالته السابقة ثم احفظ الحالة الحالية فقط.
+    const del=await _sb.from('attendance')
+      .delete()
+      .eq('complex_id',complexId)
+      .in('student_id',studentIds);
+    if(del.error)throw del.error;
+
     const rows=entries.map(e=>({
       complex_id:complexId,
       student_id:e.studentId,
       halaqa_id:halaqaId||null,
-      date,
+      date:date||new Date().toISOString().split('T')[0],
       status:e.status
     }));
-    const{error}=await _sb.from('attendance')
-      .upsert(rows,{onConflict:'complex_id,student_id,date'});
+    const{error}=await _sb.from('attendance').insert(rows);
     if(error)throw error;
   },
 
