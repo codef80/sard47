@@ -349,41 +349,65 @@ const SardAPI = {
   },
 
   // ── الحضور ──
-  // منطق السرد: التحضير تحضير برنامج واحد وليس تحضيرًا يوميًا.
-  // لذلك يتم جلب آخر حالة محفوظة لكل طالب بغض النظر عن التاريخ.
   async getAttendance(complexId,date){
     const{data,error}=await _sb.from('attendance')
       .select('student_id,halaqa_id,status,date')
       .eq('complex_id',complexId)
+      .eq('date',date);
+    if(error)return[];
+    return data||[];
+  },
+
+  // تحضير البرنامج: آخر حالة محفوظة للطالب بغض النظر عن اليوم
+  async getProgramAttendance(complexId){
+    const{data,error}=await _sb.from('attendance')
+      .select('student_id,halaqa_id,status,date,students(name,track,halaqas(name))')
+      .eq('complex_id',complexId)
       .order('date',{ascending:false});
     if(error)return[];
-
-    const latestByStudent={};
+    const seen=new Set();
+    const out=[];
     (data||[]).forEach(r=>{
-      const sid=String(r.student_id||'');
-      if(sid&&!latestByStudent[sid])latestByStudent[sid]=r;
+      if(!seen.has(r.student_id)){
+        seen.add(r.student_id);
+        out.push(r);
+      }
     });
-    return Object.values(latestByStudent);
+    return out;
   },
 
   async saveAttendance(complexId,halaqaId,date,entries){
     if(!entries||!entries.length)return;
-
-    const studentIds=entries.map(e=>e.studentId).filter(Boolean);
-    if(!studentIds.length)return;
-
-    // نمنع تعدد التحضير لنفس الطالب عبر الأيام: احذف حالته السابقة ثم احفظ الحالة الحالية فقط.
-    const del=await _sb.from('attendance')
-      .delete()
-      .eq('complex_id',complexId)
-      .in('student_id',studentIds);
-    if(del.error)throw del.error;
-
     const rows=entries.map(e=>({
       complex_id:complexId,
       student_id:e.studentId,
       halaqa_id:halaqaId||null,
-      date:date||new Date().toISOString().split('T')[0],
+      date,
+      status:e.status
+    }));
+    const{error}=await _sb.from('attendance')
+      .upsert(rows,{onConflict:'complex_id,student_id,date'});
+    if(error)throw error;
+  },
+
+  // يحفظ حالة واحدة فقط للطالب داخل البرنامج، وليس سجلاً يومياً متعددًا
+  async saveProgramAttendance(complexId,halaqaId,entries){
+    if(!entries||!entries.length)return;
+    const studentIds=entries.map(e=>e.studentId).filter(Boolean);
+    if(studentIds.length){
+      const{error:delError}=await _sb.from('attendance')
+        .delete()
+        .eq('complex_id',complexId)
+        .in('student_id',studentIds);
+      if(delError)throw delError;
+    }
+    const d=new Date();
+    const localDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const rows=entries.map(e=>({
+      complex_id:complexId,
+      student_id:e.studentId,
+      halaqa_id:halaqaId||null,
+      date:localDate,
       status:e.status
     }));
     const{error}=await _sb.from('attendance').insert(rows);
