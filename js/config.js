@@ -7,7 +7,12 @@ const SARD_CONFIG = {
     url: 'https://bqcwrectxxlkngzbpiwx.supabase.co',
     key: 'sb_publishable_1vfsGjMlpfv0r9TSfftWRQ_nAijq7kT'
   },
-  version: '2.0.0'
+  push: {
+    // مفتاح VAPID العام فقط. المفتاح الخاص يوضع في Supabase Secrets ولا يوضع في الواجهة.
+    vapidPublicKey: 'BDeyBapZj_sArEVB1WV_4qgeDqUgDaiMqZr8eNa5FHmXcuCzkHLnY_KCroGb_BmIMq7YhqNMxhroZzavY19h7YI',
+    functionName: 'send-admin-push'
+  },
+  version: '2.1.0'
 };
 
 // تهيئة Supabase client

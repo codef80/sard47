@@ -424,4 +424,36 @@ const SardAPI = {
     if(error)throw error;
     return data||[];
   }
+,
+
+  // ── تنبيهات السوبر أدمن ──
+  async notifySuperAdmin(type, payload={}){
+    try{
+      const session = await this.getSession();
+      if(!session?.access_token){
+        console.warn('Push skipped: no active session');
+        return { ok:false, skipped:'no-session' };
+      }
+      const functionName = SARD_CONFIG?.push?.functionName || 'send-admin-push';
+      const res = await fetch(`${SARD_CONFIG.supabase.url}/functions/v1/${functionName}`, {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'apikey':SARD_CONFIG.supabase.key,
+          'Authorization':`Bearer ${session.access_token}`
+        },
+        body:JSON.stringify({ type, payload })
+      });
+      const data = await res.json().catch(()=>({}));
+      if(!res.ok){
+        console.warn('Push notification error:', data);
+        return { ok:false, error:data };
+      }
+      return data;
+    }catch(e){
+      console.warn('Push notification failed:', e);
+      return { ok:false, error:e.message||String(e) };
+    }
+  }
+
 };
