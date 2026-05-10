@@ -2,6 +2,14 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <meta name="theme-color" content="#014979"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="السرد"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
   <title>لوحة السوبر أدمن</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -20,6 +28,11 @@
     .kpi-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px; }
     @media(max-width:640px) { .kpi-grid { grid-template-columns:1fr 1fr; } }
     .sa-login-wrap { min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary),#025a96); }
+    .push-card { margin-bottom:18px; border:1px solid rgba(177,151,56,.22); background:linear-gradient(135deg,#fff,#fbf8ee); }
+    .push-status { display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;border-radius:999px;padding:5px 10px;background:#eef2f7;color:#475569; }
+    .push-status.ok { background:#dcfce7;color:#166534; }
+    .push-status.warn { background:#fef3c7;color:#92400e; }
+    .push-actions { display:flex;gap:8px;flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -72,6 +85,23 @@
     <!-- DASHBOARD -->
     <div id="tab-dashboard" class="tab-content">
       <div class="kpi-grid" id="dashKpis"></div>
+
+      <div class="card-sard push-card" id="adminPushCard">
+        <div class="d-flex justify-between align-center flex-wrap gap-2">
+          <div>
+            <div class="card-title" style="margin-bottom:5px;"><i class="fas fa-bell" style="color:var(--gold);"></i> تنبيهات السوبر أدمن على الآيفون</div>
+            <div class="text-muted" style="font-size:.84rem;line-height:1.7;">فعّلها مرة واحدة بعد فتح الموقع من أيقونة الشاشة الرئيسية، ثم جرّب إرسال تنبيه.</div>
+          </div>
+          <div class="push-status" id="pushStatus"><i class="fas fa-circle-info"></i> جاري الفحص...</div>
+        </div>
+        <div class="push-actions mt-3">
+          <button class="btn-primary-sard" id="pushEnableBtn" onclick="enableAdminPush()"><i class="fas fa-bell"></i> تفعيل التنبيهات</button>
+          <button class="btn-outline-sard" id="pushTestBtn" onclick="sendAdminPushTest()"><i class="fas fa-paper-plane"></i> إرسال تجربة</button>
+          <button class="btn-danger-sard" id="pushDisableBtn" onclick="disableAdminPush()"><i class="fas fa-bell-slash"></i> إيقافها على هذا الجهاز</button>
+        </div>
+        <div class="text-muted mt-2" id="pushHint" style="font-size:.78rem;line-height:1.7;"></div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div class="card-sard">
           <div class="card-title"><i class="fas fa-building" style="color:var(--gold);"></i> المجمعات الأخيرة</div>
@@ -128,6 +158,8 @@
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
+<script src="js/pwa-register.js"></script>
+<script src="js/push-admin.js"></script>
 <script>
 const S = { user:null, complexes:[], users:[] };
 
@@ -148,6 +180,7 @@ window.addEventListener('load', async () => {
   await loadAll();
   hideSpinner();
   document.getElementById('appWrap').style.display='block';
+  await initAdminPushUI();
 });
 
 async function saLogin() {
@@ -376,6 +409,87 @@ async function promoteToSupervisor(id, currentRole) {
   const u=S.users.find(u=>u.id===id);if(u)u.role=newRole;
   renderAllUsers();showSaveSuccess('تم التغيير');
 }
+
+async function initAdminPushUI() {
+  const statusEl = document.getElementById('pushStatus');
+  const hintEl = document.getElementById('pushHint');
+  const enableBtn = document.getElementById('pushEnableBtn');
+  const testBtn = document.getElementById('pushTestBtn');
+  const disableBtn = document.getElementById('pushDisableBtn');
+  if (!statusEl || !window.SardPush) return;
+
+  const st = await SardPush.getStatus();
+  statusEl.className = 'push-status';
+
+  if (!st.supported) {
+    statusEl.classList.add('warn');
+    statusEl.innerHTML = '<i class="fas fa-triangle-exclamation"></i> غير مدعوم';
+    hintEl.textContent = 'هذا المتصفح لا يدعم Web Push. على الآيفون استخدم iOS 16.4 أو أحدث وافتح الموقع من أيقونة الشاشة الرئيسية.';
+    if (enableBtn) enableBtn.disabled = true;
+    if (testBtn) testBtn.disabled = true;
+    if (disableBtn) disableBtn.disabled = true;
+    return;
+  }
+
+  if (st.subscribed && st.permission === 'granted') {
+    statusEl.classList.add('ok');
+    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> مفعّلة على هذا الجهاز';
+    hintEl.textContent = st.standalone ? 'ممتاز، الموقع يعمل كتطبيق من الشاشة الرئيسية.' : 'التنبيهات مفعلة. على الآيفون الأفضل فتحها من أيقونة الشاشة الرئيسية.';
+    if (testBtn) testBtn.disabled = false;
+    return;
+  }
+
+  if (st.permission === 'denied') {
+    statusEl.classList.add('warn');
+    statusEl.innerHTML = '<i class="fas fa-ban"></i> محظورة';
+    hintEl.textContent = 'التنبيهات محظورة من إعدادات المتصفح/الآيفون. فعّلها من إعدادات الموقع ثم حاول مرة أخرى.';
+    if (enableBtn) enableBtn.disabled = true;
+    if (testBtn) testBtn.disabled = true;
+    return;
+  }
+
+  statusEl.classList.add('warn');
+  statusEl.innerHTML = '<i class="fas fa-bell"></i> غير مفعّلة';
+  hintEl.textContent = st.standalone ? 'اضغط تفعيل التنبيهات، ثم اسمح بالطلب الذي يظهر لك.' : 'على الآيفون: افتح الموقع من Safari ثم مشاركة ← إضافة إلى الشاشة الرئيسية، وبعدها افتح الأيقونة واضغط تفعيل التنبيهات.';
+  if (testBtn) testBtn.disabled = true;
+}
+
+async function enableAdminPush() {
+  const btn = document.getElementById('pushEnableBtn');
+  btnLoading(btn, 'جارٍ التفعيل...');
+  try {
+    await SardPush.enable();
+    btnReset(btn);
+    await initAdminPushUI();
+    showSaveSuccess('تم تفعيل التنبيهات على هذا الجهاز');
+  } catch(e) {
+    btnReset(btn);
+    showToast('خطأ: ' + (e.message || e), 'error');
+    await initAdminPushUI();
+  }
+}
+
+async function disableAdminPush() {
+  const r = await Swal.fire({icon:'question',title:'إيقاف التنبيهات؟',text:'سيتم إيقاف التنبيهات على هذا الجهاز فقط.',showCancelButton:true,confirmButtonText:'إيقاف',cancelButtonText:'إلغاء',confirmButtonColor:'#c0392b'});
+  if (!r.isConfirmed) return;
+  try {
+    await SardPush.disable();
+    await initAdminPushUI();
+    showToast('تم إيقاف التنبيهات على هذا الجهاز','success');
+  } catch(e) { showToast('خطأ: ' + (e.message || e), 'error'); }
+}
+
+async function sendAdminPushTest() {
+  const btn = document.getElementById('pushTestBtn');
+  btnLoading(btn, 'جارٍ الإرسال...');
+  try {
+    const res = await SardPush.sendTest();
+    btnReset(btn);
+    if (res?.ok) showSaveSuccess('تم إرسال التنبيه التجريبي');
+    else showToast('تعذر الإرسال: ' + (res?.error?.error || res?.error?.message || 'راجع Edge Function'), 'error');
+  } catch(e) { btnReset(btn); showToast('خطأ: ' + (e.message || e), 'error'); }
+}
+
 </script>
 </body>
 </html>
