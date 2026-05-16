@@ -27,9 +27,9 @@ function kpiCardBar(label, value, icon) {
     <i class="fas ${escH(icon)} kpi-float"></i></div>`;
 }
 
-// ─── miniTable للمقاطع ───
+// ─── miniTable للأجزاء ───
 function buildMiniTable(sections, partsDivisions) {
-  if (!sections || !sections.length) return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if (!sections || !sections.length) return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   const div = Number(partsDivisions)||2;
   const lbl = divLabel(div);
   const map = {};
@@ -41,7 +41,7 @@ function buildMiniTable(sections, partsDivisions) {
     map[pn][hz] = s;
   });
   const parts = Object.keys(map).sort((a,b)=>Number(a)-Number(b));
-  if (!parts.length) return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if (!parts.length) return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
 
   let thead = '<thead>';
   if (div===1) {
@@ -100,10 +100,16 @@ function getEffSettings(student, settings, trackConfigs) {
 function calcStudentStats(student, record, settings, trackConfigs, attendanceList) {
   const eff = getEffSettings(student, settings, trackConfigs);
   const sections = (record?.sections || []).filter(s => s && s.partNumber);
-  const totalExpected = Math.ceil((Number(student.parts_count)||0) * Number(eff.partsDivisions));
-  const displayed     = sections.length;
-  const passed        = sections.filter(s => s.isPassed).length;
-  const failed        = displayed - passed;
+  const div = Number(eff.partsDivisions) || 1;
+  const partsCount = Number(student.parts_count) || 0;
+  const expectedSections = Math.ceil(partsCount * div);
+  const displayedSections = sections.length;
+  const passedSections = sections.filter(s => s.isPassed).length;
+  const failedSections = displayedSections - passedSections;
+  const totalExpected = partsCount;
+  const displayed     = displayedSections / div;
+  const passed        = passedSections / div;
+  const failed        = failedSections / div;
   const remaining     = Math.max(0, totalExpected - displayed);
   const coveragePct   = totalExpected > 0 ? (displayed / totalExpected * 100) : 0;
   const passPct       = displayed > 0 ? (passed / displayed * 100) : 0;
@@ -111,8 +117,8 @@ function calcStudentStats(student, record, settings, trackConfigs, attendanceLis
   const failPct       = displayed > 0 ? (failed / displayed * 100) : 0;
   // درجة الطالب المحتسبة: المقطع الراسب = 0 حتى لو كان له درجة مدخلة
   const effectiveScore = sections.reduce((acc,s)=>acc+(s && s.isPassed ? (Number(s.score)||0) : 0),0);
-  const totalMaxScore  = (Number(student.parts_count)||0) * 20;
-  const avgScore      = displayed > 0 ? (effectiveScore / displayed) : 0;
+  const totalMaxScore  = partsCount * 20;
+  const avgScore      = displayedSections > 0 ? (effectiveScore / displayedSections) : 0;
   // نسبة الطالب: المقروء من المحفوظ الكلي مع خصم الأخطاء والتنبيهات، والرسوب = 0
   const studentPct    = totalMaxScore > 0 ? (effectiveScore / totalMaxScore * 100) : 0;
 
