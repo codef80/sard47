@@ -25,12 +25,12 @@
 /* TABLES */
 .tbl-wrap { overflow-x:auto;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm); }
 .sard-table { width:100%;border-collapse:collapse;font-size:.82rem; }
-.sard-table thead th { background:var(--primary-lt);color:var(--primary);font-weight:700;padding:10px 12px;text-align:right;border-bottom:2px solid rgba(1,73,121,.15);white-space:nowrap; }
+.sard-table thead th { background:var(--primary-lt);color:var(--primary);font-weight:700;padding:10px 12px;text-align:center;border-bottom:2px solid rgba(1,73,121,.15);white-space:nowrap;vertical-align:middle; }
 .sard-table tbody tr { background:#fff;transition:background .15s; }
 .sard-table tbody tr:nth-child(even) { background:#fafbfd; }
 .sard-table tbody tr:hover { background:var(--primary-lt); }
 .sard-table tbody tr.row-sel { background:var(--primary-lt);outline:2px solid var(--primary);outline-offset:-2px; }
-.sard-table tbody td { padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.sard-table tbody td { padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;text-align:center; }
 
 /* SELECT */
 .sard-select { appearance:none;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:8px 32px 8px 12px;font-size:.9rem;font-weight:500;color:var(--primary);cursor:pointer;font-family:'Tajawal',sans-serif;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23014979' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-position:left 8px center;background-repeat:no-repeat;background-size:1.2em; }
@@ -57,7 +57,7 @@
 .mini-table th,.mini-table td { border:1px solid var(--border);padding:6px 9px;text-align:center;vertical-align:middle;white-space:nowrap; }
 .mini-table thead th { background:var(--primary-lt);color:var(--primary);font-weight:700; }
 .mini-table thead th.th-part { background:var(--primary);color:#fff;font-weight:800; }
-.mini-table td.td-label { background:var(--primary-lt);color:var(--primary);font-weight:700;text-align:right;min-width:70px; }
+.mini-table td.td-label { background:var(--primary-lt);color:var(--primary);font-weight:700;text-align:center;min-width:70px; }
 .mini-table td.td-part { background:#f8fafc;font-weight:800;color:var(--primary-dk);text-align:center; }
 .cell-pass { color:var(--success);font-weight:800; }
 .cell-fail { color:var(--danger);font-weight:800; }
