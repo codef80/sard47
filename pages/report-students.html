@@ -630,7 +630,8 @@ function renderCard(r,idx){
   var totalScore=calcEffectiveTotalScore(sections);
   var div=detDiv(sections);
   var shownParts=partsValue(total,div);
-  var passRate=shownParts>0?Math.round((totalScore/(shownParts*20))*100):0;
+  var partsSaved=Number(stu.partsCount||0);
+  var passRate=partsSaved>0?Math.round((totalScore/(partsSaved*20))*100):0;
 
   document.getElementById('out').innerHTML=
     '<div class="card-sard animate-in">'
@@ -692,8 +693,8 @@ function buildLookupWhatsappMessage(stu, sum, sections){
 
   var partsSaved = Number(stu.partsCount || 0);
   var totalScore = calcEffectiveTotalScore(sections);
-  var percent = shownParts > 0
-    ? Math.round((Number(totalScore || 0) / (shownParts * 20)) * 100)
+  var percent = partsSaved > 0
+    ? Math.round((Number(totalScore || 0) / (partsSaved * 20)) * 100)
     : 0;
 
   var lastSec = sections.length ? sections[sections.length - 1] : {};
@@ -736,7 +737,7 @@ function fillCert(d){
   var passedParts = partsValue(d.passed || 0, d.partsDivisions || 1);
   var failedParts = partsValue(d.failed || 0, d.partsDivisions || 1);
 
-  var studentPct = shownParts > 0 ? Math.round((Number(d.totalScore || 0) / (shownParts * 20)) * 100) : 0;
+  var studentPct = Number(d.partsSaved || 0) > 0 ? Math.round((Number(d.totalScore || 0) / (Number(d.partsSaved || 0) * 20)) * 100) : 0;
   var pctCol = studentPct >= 80 ? '#1a7a4a' : studentPct >= 60 ? '#014979' : studentPct >= 40 ? '#d97706' : '#c0392b';
   var isHonor = studentPct >= 90;
   var shownParts = partsValue(d.totalSections || 0, d.partsDivisions || 1);

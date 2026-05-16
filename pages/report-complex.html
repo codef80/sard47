@@ -157,7 +157,7 @@ async function loadData(){
     const[settings,trackConfigs,halaqas,students,records,todayAtt]=await Promise.all([
       SardAPI.getSettings(cid),SardAPI.getTrackConfigs(cid),
       SardAPI.getHalaqas(cid),SardAPI.getStudents(cid),
-      SardAPI.getRecords(cid),SardAPI.getAttendance(cid,today)
+      SardAPI.getRecords(cid),SardAPI.getProgramAttendance(cid)
     ]);
     _D=buildDailySummary(halaqas,students,records,todayAtt,settings,trackConfigs);
     if(!_sel&&_D.halaqas.length)_sel=_D.halaqas[0].name;
@@ -196,7 +196,9 @@ function buildDailySummary(halaqas,students,records,todayAtt,settings,trackConfi
     var passPct=displayed>0?(passed/displayed*100):0;
     var passFromExpPct=exp>0?(passed/exp*100):0;
     var failPct=displayed>0?(failed/displayed*100):0;
-    var studentPct=coverPct*0.4+passPct*0.6;
+    var effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0);
+    var totalMaxScore=(parseFloat(student.parts_count||0)||0)*20;
+    var studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
     return{
       id:student.id,name:student.name||'',sid:student.sid||'',
       track:student.track||'',halaqa:student.halaqa||'',halaqa_id:student.halaqa_id,

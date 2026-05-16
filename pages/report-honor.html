@@ -162,7 +162,7 @@ async function loadData(){
     document.getElementById('navTitle').textContent='صفحة التكريم — '+complex.name;
     var cid=complex.id;
     var today=new Date().toISOString().split('T')[0];
-    var res=await Promise.all([SardAPI.getSettings(cid),SardAPI.getTrackConfigs(cid),SardAPI.getStudents(cid),SardAPI.getRecords(cid),SardAPI.getAttendance(cid,today)]);
+    var res=await Promise.all([SardAPI.getSettings(cid),SardAPI.getTrackConfigs(cid),SardAPI.getStudents(cid),SardAPI.getRecords(cid),SardAPI.getProgramAttendance(cid)]);
     var settings=res[0]||{},trackConfigs=res[1]||[],students=res[2]||[],records=res[3]||[],todayAtt=res[4]||[];
     var attMap={};todayAtt.forEach(function(a){attMap[a.student_id]=a.status;});
     var recMap={};records.forEach(function(r){recMap[r.student_id]=r.sections||[];});

@@ -160,7 +160,7 @@ async function loadData(opts){
     document.getElementById('navTitle').textContent='تقرير المسارات التفصيلي — '+complex.name;
     var cid=complex.id;
     var today=new Date().toISOString().split('T')[0];
-    var res=await Promise.all([SardAPI.getSettings(cid),SardAPI.getTrackConfigs(cid),SardAPI.getStudents(cid),SardAPI.getRecords(cid),SardAPI.getAttendance(cid,today)]);
+    var res=await Promise.all([SardAPI.getSettings(cid),SardAPI.getTrackConfigs(cid),SardAPI.getStudents(cid),SardAPI.getRecords(cid),SardAPI.getProgramAttendance(cid)]);
     var settings=res[0]||{},trackConfigs=res[1]||[],students=res[2]||[],records=res[3]||[],todayAtt=res[4]||[];
     var attMap={};todayAtt.forEach(function(a){attMap[a.student_id]=a.status;});
     var recMap={};records.forEach(function(r){recMap[r.student_id]=r.sections||[];});
@@ -176,7 +176,7 @@ async function loadData(opts){
       var div=eff.partsDivisions;
       var exp=Math.ceil(parseFloat(student.parts_count||0)*div);
       var displayed=sections.length,passed=sections.filter(function(s){return s.isPassed;}).length,failed=displayed-passed,remaining=Math.max(0,exp-displayed);
-      var coverPct=exp>0?(displayed/exp*100):0,passPct=displayed>0?(passed/displayed*100):0,passFromExpPct=exp>0?(passed/exp*100):0,failPct=displayed>0?(failed/displayed*100):0,studentPct=coverPct*0.4+passPct*0.6;
+      var coverPct=exp>0?(displayed/exp*100):0,passPct=displayed>0?(passed/displayed*100):0,passFromExpPct=exp>0?(passed/exp*100):0,failPct=displayed>0?(failed/displayed*100):0,effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0),totalMaxScore=(parseFloat(student.parts_count||0)||0)*20,studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
       return{id:student.id,name:student.name||'',sid:student.sid||'',track:String(student.track||'').trim()||'بدون مسار',halaqa:student.halaqa||'',halaqa_id:student.halaqa_id,partsCount:parseFloat(student.parts_count||0),guardianPhone:student.guardian_phone||'',partsDivisions:div,status:attMap[student.id]||'',expectedParts:exp,displayedParts:displayed,passedParts:passed,failedParts:failed,remainingParts:remaining,coveragePercent:coverPct,passFromExpectedPercent:passFromExpPct,failPercent:failPct,studentPercent:studentPct,sections:sections,rank:0};
     });
     // تجميع المسارات
