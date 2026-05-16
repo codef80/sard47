@@ -95,6 +95,21 @@
     /* ── TWO-COL ── */
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
     @media(max-width:768px){.two-col{grid-template-columns:1fr;}}
+    /* ── قوائم المتابعة داخل تبويب التقارير ── */
+    .section-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .sard-select{appearance:none;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:8px 32px 8px 12px;font-size:.9rem;font-weight:500;color:var(--primary);cursor:pointer;font-family:'Tajawal',sans-serif;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23014979' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-position:left 8px center;background-repeat:no-repeat;background-size:1.2em;}
+    .subtab-btn{padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;color:var(--primary);transition:all .2s;}
+    .subtab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+    .btn-excel-sard{background:linear-gradient(135deg,var(--primary),var(--primary-dk));color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 18px;font-family:'Tajawal',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--shadow-sm);}
+    .btn-excel-sard:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
+    .btn-excel-sard i{color:var(--gold);}
+    .sard-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+    .sard-table thead th{background:var(--primary-lt);color:var(--primary);font-weight:700;padding:10px 12px;text-align:center;border-bottom:2px solid rgba(1,73,121,.15);white-space:nowrap;}
+    .sard-table tbody tr{background:#fff;transition:background .15s;}
+    .sard-table tbody tr:nth-child(even){background:#fafbfd;}
+    .sard-table tbody tr:hover{background:var(--primary-lt);}
+    .sard-table tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;text-align:center;}
+    .empty-box{padding:24px;text-align:center;color:var(--text-muted);}
   </style>
 </head>
 <body>
@@ -340,6 +355,7 @@
             <div class="text-muted" style="font-size:.8rem;">بحث عن نتائج أي طالب بالتفصيل</div>
           </div>
         </div>
+        <div id="reportFollowupsWrap" style="margin-top:16px;"></div>
       </div>
 
       <!-- ════ إعدادات التسميع ════ -->
@@ -489,7 +505,8 @@ const S = {
   user:null, complexId:null, complexCode:'',
   users:[], halaqas:[], students:[], records:[],
   settings:{}, trackConfigs:[],
-  filterStatus:'all', attData:[]
+  filterStatus:'all', attData:[],
+  reportFollowups:{loading:false,summary:null,attendance:[],halaqaFilter:'__all__',halaqaTab:'absent',trackFilter:'__all__',trackTab:'absent'}
 };
 
 // ═══════════════════════════════════════
@@ -549,6 +566,8 @@ async function loadAll() {
   renderStudents();
   loadSettingsForm();
   loadAttHalaqaFilter();
+  S.reportFollowups.summary=null;
+  if(document.getElementById('pane-reports')?.classList.contains('active')) renderReportFollowups();
 }
 
 async function doLogout() {
@@ -577,6 +596,7 @@ function showPane(id) {
   const sn = document.getElementById('sn-'+id); if(sn) sn.classList.add('active');
   document.getElementById('pageTitle').innerHTML = `<i class="fas ${paneIcons[id]||'fa-circle'}"></i> ${paneTitles[id]||id}`;
   closeSidebar();
+  if(id==='reports') renderReportFollowups();
 }
 function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
@@ -1131,6 +1151,268 @@ function exportAttCSV() {
   const BOM='\uFEFF';
   const csv=BOM+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='تقرير_تحضير_البرنامج.csv';a.click();
+}
+
+
+// ═══════════════════════════════════════
+// REPORT FOLLOW-UP LISTS
+// ═══════════════════════════════════════
+function rfN(v){return Number(v||0).toLocaleString('en-US');}
+function rfP(v){return Number(v||0).toLocaleString('en-US',{maximumFractionDigits:1});}
+function rfStatusLabel(s){return s==='present'?'حاضر':s==='late'?'متأخر':s==='excused'?'معتذر':s==='absent'?'غائب':'—';}
+function rfSafeFileName(v){return String(v||'').replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,'-').slice(0,120)||'تقرير';}
+
+async function renderReportFollowups(){
+  const wrap=document.getElementById('reportFollowupsWrap');
+  if(!wrap)return;
+  const rf=S.reportFollowups;
+  if(!rf.summary){
+    if(!rf.loading){
+      rf.loading=true;
+      wrap.innerHTML='';
+      try{
+        rf.attendance=await SardAPI.getProgramAttendance(S.complexId);
+        rf.summary=buildSupervisorReportFollowupSummary(rf.attendance||[]);
+      }catch(e){
+        wrap.innerHTML='<div class="card-sard" style="text-align:center;color:var(--danger);padding:24px;"><i class="fas fa-exclamation-circle" style="display:block;font-size:1.6rem;margin-bottom:8px;"></i>تعذر تحميل قوائم المتابعة</div>';
+        rf.loading=false;
+        return;
+      }
+      rf.loading=false;
+    }else return;
+  }
+  wrap.innerHTML=buildSupervisorHalaqaFollowupCard()+buildSupervisorTrackFollowupCard();
+}
+
+function buildSupervisorReportFollowupSummary(attendance){
+  var attMap={};
+  (attendance||[]).forEach(function(a){attMap[a.student_id]=a.status;});
+  var recMap={};
+  (S.records||[]).forEach(function(r){recMap[r.student_id]=r.sections||[];});
+
+  function getEff(student){
+    var tc=(S.trackConfigs||[]).find(function(t){return t.name===student.track;});
+    var settings=S.settings||{};
+    return{partsDivisions:Number(tc&&tc.parts_divisions?tc.parts_divisions:settings.parts_divisions||2)};
+  }
+  function calcSt(student){
+    var eff=getEff(student);
+    var div=Number(eff.partsDivisions)||1;
+    var sections=(recMap[student.id]||[]).filter(function(sec){return sec&&sec.partNumber;});
+    var partsCount=parseFloat(student.parts_count||0)||0;
+    var displayedSections=sections.length;
+    var passedSections=sections.filter(function(sec){return sec.isPassed;}).length;
+    var failedSections=displayedSections-passedSections;
+    var exp=partsCount;
+    var displayed=displayedSections/div;
+    var passed=passedSections/div;
+    var failed=failedSections/div;
+    var remaining=Math.max(0,exp-displayed);
+    var coveragePercent=exp>0?(displayed/exp*100):0;
+    var passFromExpectedPercent=exp>0?(passed/exp*100):0;
+    var failPercent=displayed>0?(failed/displayed*100):0;
+    var effectiveScore=sections.reduce(function(a,sec){return a+((sec&&sec.isPassed)?(Number(sec.score)||0):0);},0);
+    var totalMaxScore=partsCount*20;
+    var studentPercent=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
+    return{
+      id:student.id,name:student.name||'',sid:student.sid||'',track:String(student.track||'').trim()||'بدون مسار',
+      halaqa:student.halaqa||'',halaqa_id:student.halaqa_id,status:attMap[student.id]||'',
+      expectedParts:exp,displayedParts:displayed,passedParts:passed,failedParts:failed,remainingParts:remaining,
+      coveragePercent:coveragePercent,passFromExpectedPercent:passFromExpectedPercent,failPercent:failPercent,studentPercent:studentPercent,rank:0
+    };
+  }
+
+  var studentsByHalaqa={};
+  var halaqaStats=(S.halaqas||[]).map(function(h){
+    var studs=(S.students||[]).filter(function(st){return st.halaqa_id===h.id;}).map(calcSt);
+    studs.sort(function(a,b){return b.studentPercent-a.studentPercent;});
+    studs.forEach(function(st,i){st.rank=i+1;});
+    studentsByHalaqa[h.name]=studs;
+    return{name:h.name,students:studs};
+  });
+
+  var studentsByTrack={};
+  (S.students||[]).map(calcSt).forEach(function(st){
+    var track=st.track||'بدون مسار';
+    if(!studentsByTrack[track])studentsByTrack[track]=[];
+    studentsByTrack[track].push(st);
+  });
+  Object.keys(studentsByTrack).forEach(function(track){
+    studentsByTrack[track].sort(function(a,b){return b.studentPercent-a.studentPercent;});
+    studentsByTrack[track].forEach(function(st,i){st.rank=i+1;});
+  });
+  var tracks=Object.keys(studentsByTrack).sort(function(a,b){return a.localeCompare(b,'ar');}).map(function(track){return{name:track,students:studentsByTrack[track]};});
+
+  return{halaqas:halaqaStats,studentsByHalaqa:studentsByHalaqa,tracks:tracks,studentsByTrack:studentsByTrack};
+}
+
+function getSupervisorFollowupStudents(type){
+  var rf=S.reportFollowups,summary=rf.summary;
+  if(!summary)return[];
+  if(type==='halaqa'){
+    var hf=rf.halaqaFilter||'__all__';
+    if(hf==='__all__'){
+      var all=[];
+      Object.keys(summary.studentsByHalaqa||{}).forEach(function(hName){
+        (summary.studentsByHalaqa[hName]||[]).forEach(function(st){all.push(Object.assign({},st,{halaqa:hName}));});
+      });
+      return all;
+    }
+    return(summary.studentsByHalaqa[hf]||[]).map(function(st){return Object.assign({},st,{halaqa:hf});});
+  }
+  var tf=rf.trackFilter||'__all__';
+  if(tf==='__all__'){
+    var allt=[];
+    Object.keys(summary.studentsByTrack||{}).forEach(function(track){
+      (summary.studentsByTrack[track]||[]).forEach(function(st){allt.push(Object.assign({},st,{track:track}));});
+    });
+    return allt;
+  }
+  return(summary.studentsByTrack[tf]||[]).map(function(st){return Object.assign({},st,{track:tf});});
+}
+
+function buildSupervisorHalaqaFollowupCard(){
+  var rf=S.reportFollowups,summary=rf.summary;
+  if(!summary)return'';
+  var students=getSupervisorFollowupStudents('halaqa');
+  var absent=students.filter(function(st){return st.status==='absent';});
+  var remaining=students.filter(function(st){return Number(st.remainingParts||0)>0;});
+  var halaqas=summary.halaqas||[];
+  var filterOpts='<option value="__all__"'+(rf.halaqaFilter==='__all__'?' selected':'')+'> كل الحلق</option>'
+    +halaqas.map(function(h){return'<option value="'+escapeAttr(h.name)+'"'+(rf.halaqaFilter===h.name?' selected':'')+'>'+escapeHtml(h.name)+'</option>';}).join('');
+
+  function makeAbsentRows(rows){
+    if(!rows.length)return'<tr><td colspan="8" class="empty-box">لا توجد بيانات</td></tr>';
+    return rows.map(function(r,i){
+      var sL=rfStatusLabel(r.status);
+      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.halaqa)+'</td></tr>';
+    }).join('');
+  }
+  function makeRemRows(rows){
+    if(!rows.length)return'<tr><td colspan="9" class="empty-box">لا توجد بيانات</td></tr>';
+    return rows.map(function(r,i){
+      var sL=rfStatusLabel(r.status);
+      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.passFromExpectedPercent)+'%</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.halaqa)+'</td></tr>';
+    }).join('');
+  }
+
+  return'<div class="card-sard animate-in">'
+    +'<div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">'
+    +'<div class="card-title" style="margin-bottom:0;"><i class="fas fa-users-viewfinder" style="color:var(--gold);"></i> قوائم المتابعة</div>'
+    +'<div class="section-tools">'
+    +'<span class="text-muted fw-bold" style="font-size:.85rem;">فلترة:</span>'
+    +'<select class="sard-select" onchange="setReportFollowupFilter(\'halaqa\',this.value)">'+filterOpts+'</select>'
+    +'<button class="subtab-btn '+(rf.halaqaTab==='absent'?'active':'')+'" id="rf-halaqa-stab-absent" onclick="setReportFollowupTab(\'halaqa\',\'absent\')">الطلاب الغائبون ('+absent.length+')</button>'
+    +'<button class="subtab-btn '+(rf.halaqaTab==='remaining'?'active':'')+'" id="rf-halaqa-stab-remaining" onclick="setReportFollowupTab(\'halaqa\',\'remaining\')">المتبقي عليهم عرض ('+remaining.length+')</button>'
+    +'<button class="btn-excel-sard" onclick="exportReportFollowups(\'halaqa\')"><i class="fas fa-file-export"></i> تصدير</button>'
+    +'</div></div>'
+    +'<div id="rf-halaqa-sptab-absent"'+(rf.halaqaTab==='absent'?'':' style="display:none;"')+'>'
+    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الطالب</th><th>الحلقة</th></tr></thead>'
+    +'<tbody>'+makeAbsentRows(absent)+'</tbody></table></div></div>'
+    +'<div id="rf-halaqa-sptab-remaining"'+(rf.halaqaTab==='remaining'?'':' style="display:none;"')+'>'
+    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الاجتياز</th><th>نسبة الطالب</th><th>الحلقة</th></tr></thead>'
+    +'<tbody>'+makeRemRows(remaining)+'</tbody></table></div></div>'
+    +'</div>';
+}
+
+function buildSupervisorTrackFollowupCard(){
+  var rf=S.reportFollowups,summary=rf.summary;
+  if(!summary)return'';
+  var students=getSupervisorFollowupStudents('track');
+  var absent=students.filter(function(st){return st.status==='absent';});
+  var remaining=students.filter(function(st){return Number(st.remainingParts||0)>0;});
+  var tracks=summary.tracks||[];
+  var filterOpts='<option value="__all__"'+(rf.trackFilter==='__all__'?' selected':'')+'> كل المسارات</option>'
+    +tracks.map(function(t){return'<option value="'+escapeAttr(t.name)+'"'+(rf.trackFilter===t.name?' selected':'')+'>'+escapeHtml(t.name)+'</option>';}).join('');
+
+  function makeAbsentRows(rows){
+    if(!rows.length)return'<tr><td colspan="9" class="empty-box">لا توجد بيانات</td></tr>';
+    return rows.map(function(r,i){
+      var sL=rfStatusLabel(r.status);
+      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.track)+'</td><td>'+escapeHtml(r.halaqa||'—')+'</td></tr>';
+    }).join('');
+  }
+  function makeRemRows(rows){
+    if(!rows.length)return'<tr><td colspan="10" class="empty-box">لا توجد بيانات</td></tr>';
+    return rows.map(function(r,i){
+      var sL=rfStatusLabel(r.status);
+      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.passFromExpectedPercent)+'%</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.track)+'</td><td>'+escapeHtml(r.halaqa||'—')+'</td></tr>';
+    }).join('');
+  }
+
+  return'<div class="card-sard animate-in">'
+    +'<div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">'
+    +'<div class="card-title" style="margin-bottom:0;"><i class="fas fa-users-viewfinder" style="color:var(--gold);"></i>قوائم المتابعة</div>'
+    +'<div class="section-tools">'
+    +'<span class="text-muted fw-bold" style="font-size:.85rem;">فلترة:</span>'
+    +'<select class="sard-select" onchange="setReportFollowupFilter(\'track\',this.value)">'+filterOpts+'</select>'
+    +'<button class="subtab-btn '+(rf.trackTab==='absent'?'active':'')+'" id="rf-track-stab-absent" onclick="setReportFollowupTab(\'track\',\'absent\')">الطلاب الغائبون ('+absent.length+')</button>'
+    +'<button class="subtab-btn '+(rf.trackTab==='remaining'?'active':'')+'" id="rf-track-stab-remaining" onclick="setReportFollowupTab(\'track\',\'remaining\')">المتبقي عليهم عرض ('+remaining.length+')</button>'
+    +'<button class="btn-excel-sard" onclick="exportReportFollowups(\'track\')"><i class="fas fa-file-export"></i> تصدير</button>'
+    +'</div></div>'
+    +'<div id="rf-track-sptab-absent"'+(rf.trackTab==='absent'?'':' style="display:none;"')+'>'
+    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الطالب</th><th>المسار</th><th>الحلقة</th></tr></thead>'
+    +'<tbody>'+makeAbsentRows(absent)+'</tbody></table></div></div>'
+    +'<div id="rf-track-sptab-remaining"'+(rf.trackTab==='remaining'?'':' style="display:none;"')+'>'
+    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الاجتياز</th><th>نسبة الطالب</th><th>المسار</th><th>الحلقة</th></tr></thead>'
+    +'<tbody>'+makeRemRows(remaining)+'</tbody></table></div></div>'
+    +'</div>';
+}
+
+function setReportFollowupTab(type,tab){
+  if(type==='halaqa')S.reportFollowups.halaqaTab=tab;
+  else S.reportFollowups.trackTab=tab;
+  renderReportFollowups();
+}
+function setReportFollowupFilter(type,value){
+  if(type==='halaqa')S.reportFollowups.halaqaFilter=value||'__all__';
+  else S.reportFollowups.trackFilter=value||'__all__';
+  renderReportFollowups();
+}
+
+function exportReportFollowups(type){
+  var rf=S.reportFollowups;
+  var students=getSupervisorFollowupStudents(type);
+  var tab=type==='halaqa'?rf.halaqaTab:rf.trackTab;
+  var isAbsent=tab==='absent';
+  var filtered=isAbsent?students.filter(function(st){return st.status==='absent';}):students.filter(function(st){return Number(st.remainingParts||0)>0;});
+  if(!filtered.length){alert('لا توجد بيانات');return;}
+  var headers,rows,filterLabel;
+  if(type==='halaqa'){
+    headers=isAbsent?['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الطالب','الحلقة']:['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الاجتياز','نسبة الطالب','الحلقة'];
+    rows=filtered.map(function(r,i){
+      return isAbsent?[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.studentPercent||0)+'%',r.halaqa||'']:[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.passFromExpectedPercent||0)+'%',rfP(r.studentPercent||0)+'%',r.halaqa||''];
+    });
+    filterLabel=rf.halaqaFilter==='__all__'?'كل-الحلق':rf.halaqaFilter;
+  }else{
+    headers=isAbsent?['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الطالب','المسار','الحلقة']:['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الاجتياز','نسبة الطالب','المسار','الحلقة'];
+    rows=filtered.map(function(r,i){
+      return isAbsent?[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.studentPercent||0)+'%',r.track||'',r.halaqa||'']:[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.passFromExpectedPercent||0)+'%',rfP(r.studentPercent||0)+'%',r.track||'',r.halaqa||''];
+    });
+    filterLabel=rf.trackFilter==='__all__'?'كل-المسارات':rf.trackFilter;
+  }
+  exportReportFollowupExcel((isAbsent?'الغائبون':'المتبقي-عليهم')+'-'+rfSafeFileName(filterLabel)+'.xls',headers,rows);
+}
+
+function exportReportFollowupExcel(filename,headers,rows){
+  var th=headers.map(function(h){return'<th>'+escapeHtml(h)+'</th>';}).join('');
+  var trs=rows.map(function(row){return'<tr>'+row.map(function(cell){return'<td>'+escapeHtml(cell==null?'':String(cell))+'</td>';}).join('')+'</tr>';}).join('');
+  var styles='<style>'
+    +'body{font-family:Tajawal,Arial,sans-serif;direction:rtl;}'
+    +'table{border-collapse:collapse;width:100%;direction:rtl;mso-table-lspace:0pt;mso-table-rspace:0pt;}'
+    +'th{background:#014979;color:#ffffff;font-weight:700;text-align:center;border:1px solid #9fb6c7;padding:10px;white-space:nowrap;}'
+    +'td{text-align:center;vertical-align:middle;border:1px solid #d8e2ea;padding:9px;mso-number-format:"\\@";}'
+    +'tr:nth-child(even) td{background:#f7fbff;}'
+    +'</style>';
+  var html='<html dir="rtl"><head><meta charset="UTF-8">'+styles+'</head><body><table><thead><tr>'+th+'</tr></thead><tbody>'+trs+'</tbody></table></body></html>';
+  var blob=new Blob(['\ufeff',html],{type:'application/vnd.ms-excel;charset=utf-8;'});
+  var link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);
+  link.download=filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(function(){URL.revokeObjectURL(link.href);},1000);
 }
 
 // ═══════════════════════════════════════
