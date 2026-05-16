@@ -109,10 +109,12 @@ function calcStudentStats(student, record, settings, trackConfigs, attendanceLis
   const passPct       = displayed > 0 ? (passed / displayed * 100) : 0;
   const passFromExpPct= totalExpected > 0 ? (passed / totalExpected * 100) : 0;
   const failPct       = displayed > 0 ? (failed / displayed * 100) : 0;
-  // درجة الطالب: متوسط الدرجات المحصلة
-  const avgScore      = displayed > 0 ? (sections.reduce((acc,s)=>acc+(Number(s.score)||0),0) / displayed) : 0;
-  // نسبة الطالب الشاملة (60% عرض + 40% اجتياز)
-  const studentPct    = coveragePct * 0.4 + passPct * 0.6;
+  // درجة الطالب المحتسبة: المقطع الراسب = 0 حتى لو كان له درجة مدخلة
+  const effectiveScore = sections.reduce((acc,s)=>acc+(s && s.isPassed ? (Number(s.score)||0) : 0),0);
+  const totalMaxScore  = (Number(student.parts_count)||0) * 20;
+  const avgScore      = displayed > 0 ? (effectiveScore / displayed) : 0;
+  // نسبة الطالب: المقروء من المحفوظ الكلي مع خصم الأخطاء والتنبيهات، والرسوب = 0
+  const studentPct    = totalMaxScore > 0 ? (effectiveScore / totalMaxScore * 100) : 0;
 
   // الحضور
   const attToday = attendanceList ? attendanceList.find(a => a.student_id === student.id) : null;
@@ -261,7 +263,7 @@ async function loadReportData() {
     SardAPI.getHalaqas(cid),
     SardAPI.getStudents(cid),
     SardAPI.getRecords(cid),
-    SardAPI.getAttendance(cid, new Date().toISOString().split('T')[0])
+    SardAPI.getProgramAttendance(cid)
   ]);
 
   return {
