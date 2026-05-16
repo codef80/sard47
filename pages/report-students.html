@@ -436,8 +436,14 @@ function normalizeStudentForOld(st){
     studentPhone: st.student_phone || st.studentPhone || ''
   };
 }
+function isRecordedEvalSection(s){
+  return !!(s && s.partNumber && s.hizb);
+}
+function getRecordedSections(sections){
+  return Array.isArray(sections) ? sections.filter(isRecordedEvalSection) : [];
+}
 function buildSummary(sections){
-  sections=Array.isArray(sections)?sections:[];
+  sections=getRecordedSections(sections);
   var passed=sections.filter(function(s){return !!(s&&s.isPassed);}).length;
   return {
     totalSections: sections.length,
@@ -515,7 +521,7 @@ async function lookupStudentLocal(query){
     }
     return false;
   }).map(function(st){
-    var sections=d.recMap[st.id]||[];
+    var sections=getRecordedSections(d.recMap[st.id]||[]);
     return {student:normalizeStudentForOld(st),summary:buildSummary(sections),sections:sections};
   });
   return {ok:true,results:results,stats:bumpLookupStats()};
@@ -545,6 +551,7 @@ function kpiCard(label,value,icon,colorCls){
    buildMiniTable — يدعم div=1 و div=2 و div=4
 =============================================================== */
 function buildMiniTable(sections,partsDivisions){
+  sections=getRecordedSections(sections);
   if(!sections||!sections.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   var div=Number(partsDivisions)||2;
   var label=div===4?'الربع':div===1?'الجزء كامل':'الحزب';
@@ -617,7 +624,8 @@ function detDiv(sections){
 }
 
 function calcEffectiveTotalScore(sections){
-  if(!Array.isArray(sections)||!sections.length)return 0;
+  sections=getRecordedSections(sections);
+  if(!sections.length)return 0;
   return sections.reduce(function(sum,s){
     if(!s||!s.isPassed)return sum;
     var score=Number(s.score||0);
@@ -627,7 +635,7 @@ function calcEffectiveTotalScore(sections){
 
 
 function renderCard(r,idx){
-  var stu=r.student||{};var sum=r.summary||{};var sections=Array.isArray(r.sections)?r.sections:[];
+  var stu=r.student||{};var sum=r.summary||{};var sections=getRecordedSections(r.sections);
   var total=Number(sum.totalSections||sections.length||0);
   var passed=Number(sum.passedSections||0);
   var failed=Number(sum.failedSections||0);
@@ -685,7 +693,7 @@ function buildLookupWhatsappMessage(stu, sum, sections){
     tpl = 'السلام عليكم، طالبنا {اسم_الطالب} في حلقة {الحلقة}، درجته {الدرجة}.';
   }
 
-  sections = Array.isArray(sections) ? sections : [];
+  sections = getRecordedSections(sections);
 
   var div = Number(sum.partsDivisions || detDiv(sections) || 1);
 
@@ -864,7 +872,7 @@ function closeCertIfBg(e){if(e.target===document.getElementById('certOverlay'))c
 
 function doCert(idx){
   var r=(window.__res||[])[idx];if(!r)return;
-  var stu=r.student||{};var sum=r.summary||{};var sections=Array.isArray(r.sections)?r.sections:[];var div=detDiv(sections);
+  var stu=r.student||{};var sum=r.summary||{};var sections=getRecordedSections(r.sections);var div=detDiv(sections);
   var totalScore=calcEffectiveTotalScore(sections);
   var payload={complexName:'',managerName:'',studentName:stu.name||'',halaqaName:stu.halaqa||'',
     track:stu.track||'',partsSaved:Number(stu.partsCount||0),partsDivisions:div,totalSections:Number(sum.totalSections||sections.length||0),
