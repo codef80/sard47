@@ -259,6 +259,10 @@
       display:block;
     }
 
+
+    /* ضبط الجداول: توسيط الكلام داخل كل الخلايا */
+    .sard-table thead th,.sard-table tbody td{ text-align:center !important; vertical-align:middle !important; }
+    .mini-table th,.mini-table td,.mini-table td.td-label{ text-align:center !important; vertical-align:middle !important; }
 </style>
 </head>
 <body>
@@ -541,7 +545,7 @@ function kpiCard(label,value,icon,colorCls){
    buildMiniTable — يدعم div=1 و div=2 و div=4
 =============================================================== */
 function buildMiniTable(sections,partsDivisions){
-  if(!sections||!sections.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if(!sections||!sections.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   var div=Number(partsDivisions)||2;
   var label=div===4?'الربع':div===1?'الجزء كامل':'الحزب';
   var map={};
@@ -553,7 +557,7 @@ function buildMiniTable(sections,partsDivisions){
     map[pn][hz]=s;
   });
   var parts=Object.keys(map).sort(function(a,b){return Number(a)-Number(b);});
-  if(!parts.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if(!parts.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
 
   var thead='<thead>';
   if(div===1){
@@ -630,6 +634,8 @@ function renderCard(r,idx){
   var totalScore=calcEffectiveTotalScore(sections);
   var div=detDiv(sections);
   var shownParts=partsValue(total,div);
+  var passedParts=partsValue(passed,div);
+  var failedParts=partsValue(failed,div);
   var partsSaved=Number(stu.partsCount||0);
   var passRate=partsSaved>0?Math.round((totalScore/(partsSaved*20))*100):0;
 
@@ -649,9 +655,9 @@ function renderCard(r,idx){
     +'<button class="btn-primary-sard" onclick="doCert('+idx+')"><i class="fas fa-award"></i>شهادة</button>'
     +'</div></div>'
     +'<div class="grid-4" style="margin-bottom:14px;">'
-    +kpiCard('عدد المقاطع',total,'fa-list-ol')
-    +kpiCard('المجتاز',passed,'fa-check-circle','green')
-    +kpiCard('الرسوب',failed,'fa-times-circle','red')
+    +kpiCard('الأجزاء المعروضة',fPart(shownParts),'fa-list-ol')
+    +kpiCard('الأجزاء المجتازة',fPart(passedParts),'fa-check-circle','green')
+    +kpiCard('أجزاء الرسوب',fPart(failedParts),'fa-times-circle','red')
     +kpiCard('مجموع الدرجات',fP(totalScore),'fa-star')
     +'</div>'
     +'<div class="kpi-card" style="margin-bottom:14px;">'

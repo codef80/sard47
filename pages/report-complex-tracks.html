@@ -55,13 +55,18 @@
     .btn-excel-sard{background:linear-gradient(135deg,var(--primary),var(--primary-dk));color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 18px;font-family:'Tajawal',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--shadow-sm);}
     .btn-excel-sard:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
     .btn-excel-sard i{color:var(--gold);}
+
+    /* ضبط الجداول: توسيط الكلام داخل كل الخلايا */
+    .sard-table thead th,.sard-table tbody td{ text-align:center !important; vertical-align:middle !important; }
+    .mini-table th,.mini-table td,.mini-table td.td-label{ text-align:center !important; vertical-align:middle !important; }
+    .refresh-hint{ display:none !important; }
   </style>
 </head>
 <body>
 <nav class="navbar-sard">
   <div class="navbar-brand"><i class="fas fa-route"></i><span id="navTitle">تقرير المجمع والمسارات</span></div>
   <div class="d-flex align-center gap-2">
-    <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
+    <button onclick="loadData({background:true,manual:true})" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
     <a href="#" onclick="goBack()" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
   </div>
 </nav>
@@ -88,8 +93,11 @@ function kpiCardBar(label,value,icon){var pct=Math.min(Number(value)||0,100);ret
 // ─── state ───
 var _D=null, _sel='', _specialFilter='__all__', _specialTab='absent';
 
-async function loadData(){
-  document.getElementById('app').innerHTML='<div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري تحميل التقرير...</span></div>';
+async function loadData(opts){
+  opts=opts||{};
+  var isBackground=!!opts.background&&!!_D;
+  var savedScroll=isBackground?window.scrollY:0;
+  if(!isBackground)document.getElementById('app').innerHTML='<div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري تحميل التقرير...</span></div>';
   try{
     var code=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';
     if(!code)throw new Error('لا يوجد رمز مجمع');
@@ -109,9 +117,11 @@ async function loadData(){
     var studentList=students.map(function(student){
       var eff=getEff(student);var div=eff.partsDivisions;
       var sections=(recMap[student.id]||[]).filter(function(s){return s&&s.partNumber;});
-      var exp=Math.ceil(parseFloat(student.parts_count||0)*div);
-      var displayed=sections.length,passed=sections.filter(function(s){return s.isPassed;}).length,failed=displayed-passed,remaining=Math.max(0,exp-displayed);
-      var coverPct=exp>0?(displayed/exp*100):0,passPct=displayed>0?(passed/displayed*100):0,passFromExpPct=exp>0?(passed/exp*100):0,failPct=displayed>0?(failed/displayed*100):0,effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0),totalMaxScore=(parseFloat(student.parts_count||0)||0)*20,studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
+      var partsCount=parseFloat(student.parts_count||0)||0;
+      var expectedSections=Math.ceil(partsCount*div);
+      var displayedSections=sections.length,passedSections=sections.filter(function(s){return s.isPassed;}).length,failedSections=displayedSections-passedSections;
+      var exp=partsCount,displayed=displayedSections/div,passed=passedSections/div,failed=failedSections/div,remaining=Math.max(0,exp-displayed);
+      var coverPct=exp>0?(displayed/exp*100):0,passPct=displayed>0?(passed/displayed*100):0,passFromExpPct=exp>0?(passed/exp*100):0,failPct=displayed>0?(failed/displayed*100):0,effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0),totalMaxScore=partsCount*20,studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
       return{id:student.id,name:student.name||'',track:String(student.track||'').trim()||'بدون مسار',halaqa:student.halaqa||'',status:attMap[student.id]||'',expectedParts:exp,displayedParts:displayed,passedParts:passed,failedParts:failed,remainingParts:remaining,coveragePercent:coverPct,passFromExpectedPercent:passFromExpPct,failPercent:failPct,studentPercent:studentPct,rank:0};
     });
     // تجميع المسارات — مطابق للأصل transformToTracks
@@ -133,7 +143,7 @@ async function loadData(){
       var item={name:t,present:attAgg[t].present,late:attAgg[t].late,excused:attAgg[t].excused,absent:attAgg[t].absent,expectedParts:0,displayedParts:0,passedParts:0,failedParts:0,remainingParts:0,coveragePercent:0,failPercent:0,globalPercent:0,rank:0};
       studs.forEach(function(st){item.expectedParts+=st.expectedParts;item.displayedParts+=st.displayedParts;item.passedParts+=st.passedParts;item.failedParts+=st.failedParts;item.remainingParts+=st.remainingParts;});
       item.coveragePercent=item.expectedParts>0?(item.displayedParts/item.expectedParts)*100:0;
-      item.failPercent=item.expectedParts>0?(item.failedParts/item.expectedParts)*100:0;
+      item.failPercent=item.displayedParts>0?(item.failedParts/item.displayedParts)*100:0;
       item.globalPercent=item.expectedParts>0?(item.passedParts/item.expectedParts)*100:0;
       return item;
     });
@@ -146,8 +156,9 @@ async function loadData(){
     _D={center:center,tracks:tracks,studentsByTrack:trackMap};
     if(!_sel&&tracks.length)_sel=tracks[0].name;
     render();
+    if(isBackground)window.scrollTo(0,savedScroll);
   }catch(e){
-    document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
+    if(!isBackground)document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
   }
 }
 

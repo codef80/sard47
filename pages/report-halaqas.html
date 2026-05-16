@@ -72,6 +72,11 @@
     .kpis-bot{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
     @media(max-width:640px){.student-layout{grid-template-columns:1fr;}.kpis-top,.kpis-bot{grid-template-columns:repeat(2,1fr);}}
     .refresh-hint{font-size:.78rem;color:rgba(255,255,255,.85);display:inline-flex;align-items:center;gap:6px;}
+
+    /* ضبط الجداول: توسيط الكلام داخل كل الخلايا */
+    .sard-table thead th,.sard-table tbody td{ text-align:center !important; vertical-align:middle !important; }
+    .mini-table th,.mini-table td,.mini-table td.td-label{ text-align:center !important; vertical-align:middle !important; }
+    .refresh-hint{ display:none !important; }
   </style>
 </head>
 <body>
@@ -108,7 +113,7 @@ function kpiCardBar(label,value,icon){
 
 // ─── buildMiniTable مطابق تماماً للأصل ───
 function buildMiniTable(sections,partsDivisions){
-  if(!sections||!sections.length)return'<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if(!sections||!sections.length)return'<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   var div=Number(partsDivisions)||2;
   var label=div===4?'الربع':div===1?'الجزء كامل':'الحزب';
   var map={};
@@ -120,7 +125,7 @@ function buildMiniTable(sections,partsDivisions){
     map[pn][hz]=s;
   });
   var parts=Object.keys(map).sort(function(a,b){return Number(a)-Number(b);});
-  if(!parts.length)return'<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if(!parts.length)return'<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   var thead='<thead>';
   if(div===1){
     thead+='<tr><th class="td-label">المسمّع</th><th>الجزء</th><th class="th-part">الأخطاء</th><th class="th-part">التنبيهات</th><th class="th-part">الدرجة</th><th class="th-part">وجه الرسوب</th></tr>';
@@ -160,7 +165,7 @@ var _refreshTimer=null, _isFirstLoad=true, _isRefreshing=false, _lastUpdated='';
 var _complexCode='';
 
 function goBack(){var c=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';location.href='../index.html'+(c?'?c='+c:'');}
-function setRefText(msg){var el=document.getElementById('refreshText');if(el)el.textContent=msg||'تحديث تلقائي بالخلفية';}
+function setRefText(msg){return;}
 
 async function loadData(opts){
   opts=opts||{};
@@ -193,9 +198,12 @@ async function loadData(opts){
     var studentList=(students||[]).map(function(student){
       var eff=getEff(student);
       var sections=(recMap[student.id]||[]).filter(function(s){return s&&s.partNumber;});
-      var exp=Math.ceil(parseFloat(student.parts_count||0)*eff.partsDivisions);
-      var displayed=sections.length,passed=sections.filter(function(s){return s.isPassed;}).length,failed=displayed-passed,remaining=Math.max(0,exp-displayed);
-      var coverPct=exp>0?(displayed/exp*100):0,passPct=displayed>0?(passed/displayed*100):0,passFromExpPct=exp>0?(passed/exp*100):0,failPct=displayed>0?(failed/displayed*100):0,effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0),totalMaxScore=(parseFloat(student.parts_count||0)||0)*20,studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
+      var div=Number(eff.partsDivisions)||1;
+      var partsCount=parseFloat(student.parts_count||0)||0;
+      var expectedSections=Math.ceil(partsCount*div);
+      var displayedSections=sections.length,passedSections=sections.filter(function(s){return s.isPassed;}).length,failedSections=displayedSections-passedSections;
+      var exp=partsCount,displayed=displayedSections/div,passed=passedSections/div,failed=failedSections/div,remaining=Math.max(0,exp-displayed);
+      var coverPct=exp>0?(displayed/exp*100):0,passPct=displayed>0?(passed/displayed*100):0,passFromExpPct=exp>0?(passed/exp*100):0,failPct=displayed>0?(failed/displayed*100):0,effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0),totalMaxScore=partsCount*20,studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
       return{id:student.id,name:student.name||'',sid:student.sid||'',track:student.track||'',halaqa:student.halaqa||'',halaqa_id:student.halaqa_id,partsCount:parseFloat(student.parts_count||0),guardianPhone:student.guardian_phone||'',partsDivisions:eff.partsDivisions,status:attMap[student.id]||'',expectedParts:exp,displayedParts:displayed,passedParts:passed,failedParts:failed,remainingParts:remaining,coveragePercent:coverPct,passFromExpectedPercent:passFromExpPct,failPercent:failPct,studentPercent:studentPct,sections:sections};
     });
     _D={halaqas:halaqas,students:studentList,settings:settings||{},recMap:recMap};
@@ -285,7 +293,7 @@ function render(opts){
     +'</div>'
     +(selSt
       ? studentInfo
-        +'<div class="card-sard animate-in"><div class="card-title"><i class="fas fa-list-check" style="color:var(--gold);"></i> تفاصيل المقاطع المسمَّعة</div>'
+        +'<div class="card-sard animate-in"><div class="card-title"><i class="fas fa-list-check" style="color:var(--gold);"></i> تفاصيل الأجزاء المسمَّعة</div>'
         +buildMiniTable(selSt.sections||[],div)
         +'</div>'
       :'');

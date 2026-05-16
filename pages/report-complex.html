@@ -58,13 +58,18 @@
     .btn-excel-sard:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
     .btn-excel-sard i{color:var(--gold);}
     .empty-box{padding:24px;text-align:center;color:var(--text-muted);}
+
+    /* ضبط الجداول: توسيط الكلام داخل كل الخلايا */
+    .sard-table thead th,.sard-table tbody td{ text-align:center !important; vertical-align:middle !important; }
+    .mini-table th,.mini-table td,.mini-table td.td-label{ text-align:center !important; vertical-align:middle !important; }
+    .refresh-hint{ display:none !important; }
   </style>
 </head>
 <body>
 <nav class="navbar-sard">
   <div class="navbar-brand"><i class="fas fa-quran"></i><span id="navTitle">تقرير المجمع والحلق</span></div>
   <div class="d-flex align-center gap-2">
-    <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
+    <button onclick="loadData({background:true,manual:true})" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
     <a href="#" onclick="goBack()" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
   </div>
 </nav>
@@ -93,7 +98,7 @@ function kpiCardBar(label,value,icon){
 
 // ─── buildMiniTable مطابق للأصل ───
 function buildMiniTable(sections, partsDivisions){
-  if(!sections||!sections.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if(!sections||!sections.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   var div=Number(partsDivisions)||2;
   var label=div===4?'الربع':div===1?'الجزء كامل':'الحزب';
   var map={};
@@ -105,7 +110,7 @@ function buildMiniTable(sections, partsDivisions){
     map[pn][hz]=s;
   });
   var parts=Object.keys(map).sort(function(a,b){return Number(a)-Number(b);});
-  if(!parts.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد مقاطع مسجَّلة</p>';
+  if(!parts.length)return '<p class="text-muted" style="padding:16px;text-align:center;">لا توجد أجزاء مسجَّلة</p>';
   var thead='<thead>';
   if(div===1){
     thead+='<tr><th class="td-label">المسمّع</th><th>الجزء</th><th class="th-part">الأخطاء</th><th class="th-part">التنبيهات</th><th class="th-part">الدرجة</th><th class="th-part">وجه الرسوب</th></tr>';
@@ -145,8 +150,11 @@ var _D=null, _sel='', _specialFilter='__all__', _specialTab='absent';
 function goBack(){var c=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';location.href='../index.html'+(c?'?c='+c:'');}
 
 // ─── تحميل البيانات من Supabase بنفس هيكل getDailySummary ───
-async function loadData(){
-  document.getElementById('app').innerHTML='<div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري تحميل التقرير...</span></div>';
+async function loadData(opts){
+  opts=opts||{};
+  var isBackground=!!opts.background&&!!_D;
+  var savedScroll=isBackground?window.scrollY:0;
+  if(!isBackground)document.getElementById('app').innerHTML='<div class="spinner-wrap animate-in"><div class="spinner"></div><span class="text-muted">جاري تحميل التقرير...</span></div>';
   try {
     const code=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';
     if(!code)throw new Error('لا يوجد رمز مجمع');
@@ -162,8 +170,9 @@ async function loadData(){
     _D=buildDailySummary(halaqas,students,records,todayAtt,settings,trackConfigs);
     if(!_sel&&_D.halaqas.length)_sel=_D.halaqas[0].name;
     render();
+    if(isBackground)window.scrollTo(0,savedScroll);
   } catch(e) {
-    document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
+    if(!isBackground)document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
   }
 }
 
@@ -187,17 +196,23 @@ function buildDailySummary(halaqas,students,records,todayAtt,settings,trackConfi
   function calcSt(student){
     var eff=getEff(student);
     var sections=(recMap[student.id]||[]).filter(function(s){return s&&s.partNumber;});
-    var exp=Math.ceil(parseFloat(student.parts_count||0)*eff.partsDivisions);
-    var displayed=sections.length;
-    var passed=sections.filter(function(s){return s.isPassed;}).length;
-    var failed=displayed-passed;
+    var div=Number(eff.partsDivisions)||1;
+    var partsCount=parseFloat(student.parts_count||0)||0;
+    var expectedSections=Math.ceil(partsCount*div);
+    var displayedSections=sections.length;
+    var passedSections=sections.filter(function(s){return s.isPassed;}).length;
+    var failedSections=displayedSections-passedSections;
+    var exp=partsCount;
+    var displayed=displayedSections/div;
+    var passed=passedSections/div;
+    var failed=failedSections/div;
     var remaining=Math.max(0,exp-displayed);
     var coverPct=exp>0?(displayed/exp*100):0;
     var passPct=displayed>0?(passed/displayed*100):0;
     var passFromExpPct=exp>0?(passed/exp*100):0;
     var failPct=displayed>0?(failed/displayed*100):0;
     var effectiveScore=sections.reduce(function(a,s){return a+((s&&s.isPassed)?(Number(s.score)||0):0);},0);
-    var totalMaxScore=(parseFloat(student.parts_count||0)||0)*20;
+    var totalMaxScore=partsCount*20;
     var studentPct=totalMaxScore>0?(effectiveScore/totalMaxScore*100):0;
     return{
       id:student.id,name:student.name||'',sid:student.sid||'',

@@ -78,13 +78,18 @@
     .section-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
     .section-tools-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
     .text-muted{color:var(--text-muted);font-size:.85rem;}.fw-bold{font-weight:700;}
+
+    /* ضبط الجداول: توسيط الكلام داخل كل الخلايا */
+    .sard-table thead th,.sard-table tbody td{ text-align:center !important; vertical-align:middle !important; }
+    .mini-table th,.mini-table td,.mini-table td.td-label{ text-align:center !important; vertical-align:middle !important; }
+    .refresh-hint{ display:none !important; }
   </style>
 </head>
 <body>
 <nav class="navbar-sard">
   <div class="navbar-brand"><i class="fas fa-award"></i><span id="navTitle">صفحة التكريم</span></div>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-    <button onclick="loadData()" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
+    <button onclick="loadData({background:true,manual:true})" class="btn-nav"><i class="fas fa-rotate"></i> تحديث</button>
     <a href="#" onclick="goBack()" class="nav-back"><i class="fas fa-arrow-right"></i> العودة</a>
   </div>
 </nav>
@@ -137,7 +142,7 @@ function pickLatestSections(sections,div){
 function calcHonorRow(student,sections,trackConfigs,settings,attStatus){
   var div=getEffectiveDivisions(student,trackConfigs,settings);
   var latestSections=pickLatestSections(sections,div);
-  var totalScore=latestSections.reduce(function(sum,sec){var sc=Number(sec&&sec.score||0);return sum+(isFinite(sc)?sc:0);},0);
+  var totalScore=latestSections.reduce(function(sum,sec){if(!sec||!sec.isPassed)return sum;var sc=Number(sec.score||0);return sum+(isFinite(sc)?sc:0);},0);
   var passedSections=latestSections.filter(function(sec){return !!sec.isPassed;}).length;
   var failedSections=latestSections.length-passedSections;
   var displayedParts=latestSections.length/div;
@@ -153,8 +158,11 @@ function calcHonorRow(student,sections,trackConfigs,settings,attStatus){
   return{id:student.id,name:student.name||'',halaqa:student.halaqa||'بدون حلقة',track:student.track||'بدون مسار',attendanceStatus:attStatus||'',partsCount:expectedParts,partsDivisions:div,displayedParts:displayedParts,passedParts:passedParts,failedParts:failedParts,remainingParts:remainingParts,totalScore:totalScore,overallPercent:overallPercent,completionPercent:completionPercent,excellencePercent:excellencePercent,passPercent:passPercent,honorType:honorType,sectionsCount:latestSections.length,latestSections:latestSections};
 }
 
-async function loadData(){
-  document.getElementById('app').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><span class="text-muted">جاري تحميل صفحة التكريم...</span></div>';
+async function loadData(opts){
+  opts=opts||{};
+  var isBackground=!!opts.background&&Array.isArray(STATE.honorRows)&&STATE.honorRows.length>0;
+  var savedScroll=isBackground?window.scrollY:0;
+  if(!isBackground)document.getElementById('app').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><span class="text-muted">جاري تحميل صفحة التكريم...</span></div>';
   try{
     var code=new URLSearchParams(location.search).get('c')||localStorage.getItem('sard_complex_code')||'';
     if(!code)throw new Error('لا يوجد رمز مجمع');
@@ -171,8 +179,9 @@ async function loadData(){
       return calcHonorRow(student,recMap[student.id]||[],trackConfigs,settings,attMap[student.id]||'');
     });
     render();
+    if(isBackground)window.scrollTo(0,savedScroll);
   }catch(e){
-    document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-circle-exclamation" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
+    if(!isBackground)document.getElementById('app').innerHTML='<div class="card-sard" style="text-align:center;padding:32px;color:var(--danger);"><i class="fas fa-circle-exclamation" style="font-size:2rem;margin-bottom:8px;display:block;"></i>خطأ: '+escH(e.message||String(e))+'</div>';
   }
 }
 
