@@ -245,7 +245,7 @@ function render(){
     +'<th>#</th><th>اسم الطالب</th><th>الحضور</th><th>المفترض</th><th>المعروضة</th>'
     +'<th>المجتازة</th><th>نسبة العرض</th><th>نسبة الاجتياز</th><th>الرسوب</th><th>نسبة الرسوب</th><th>نسبة الطالب</th><th>الترتيب</th><th>الحلقة</th>'
     +'</tr></thead><tbody>'+studentRows+'</tbody></table></div></div>'
-    +buildSpecialTabs();
+    ;
 }
 
 function selTrack(name){_sel=name;render();setTimeout(function(){var e=document.getElementById('tSel');if(e)e.scrollIntoView({behavior:'smooth',block:'center'});},80);}
