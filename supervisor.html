@@ -41,7 +41,10 @@
     .sidebar-footer button{background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;font-size:.95rem;padding:4px;}
     .sidebar-footer button:hover{color:#fff;}
     /* ── MAIN AREA ── */
-    .sup-main{margin-right:220px;flex:1;min-height:100vh;}
+    /* min-width:0 ضروري: عنصر flex قيمته الافتراضية auto فيرفض الانضغاط تحت
+       عرض محتواه، فتُوسِّع الجداول العريضة الصفحة كلها أفقيًا ويتعطّل
+       overflow-x على .tbl-wrap بداخلها فلا تُمرَّر أبدًا. */
+    .sup-main{margin-right:220px;flex:1;min-width:0;min-height:100vh;}
     .sup-topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm);}
     .page-title{font-size:1.05rem;font-weight:800;color:var(--primary);display:flex;align-items:center;gap:8px;}
     .sup-content{padding:24px;max-width:1100px;}
@@ -79,12 +82,18 @@
     .pbar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:5px;}
     .pbar-fill{height:100%;border-radius:3px;transition:width .4s;}
     /* ── MOBILE ── */
+    .sidebar-close{display:none;background:none;border:none;color:rgba(255,255,255,.75);font-size:1.15rem;cursor:pointer;padding:4px 6px;flex-shrink:0;}
+    .sidebar-close:hover{color:#fff;}
     @media(max-width:768px){
-      .sidebar{transform:translateX(100%);}.sidebar.open{transform:translateX(0);}
+      .sidebar{transform:translateX(100%);width:min(84vw,290px);box-shadow:-8px 0 24px rgba(0,0,0,.25);}
+      .sidebar.open{transform:translateX(0);}
+      .sidebar-close{display:block;}
       .sup-main{margin-right:0;}
       .sup-topbar{padding:0 14px;}
       .sup-content{padding:14px;}
       .kpi-row{grid-template-columns:1fr 1fr;}
+      /* منع تمرير الصفحة خلف الشريط وهو مفتوح */
+      body.sidebar-locked{overflow:hidden;}
     }
     .mob-menu-btn{display:none;background:none;border:none;color:var(--primary);font-size:1.3rem;cursor:pointer;}
     @media(max-width:768px){.mob-menu-btn{display:block;}}
@@ -130,10 +139,15 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <i class="fas fa-shield-halved"></i>
-      <div>
+      <div style="flex:1;min-width:0;">
         <div>لوحة المشرف</div>
         <div class="sidebar-cx" id="sbComplexName">...</div>
       </div>
+      <!-- على الجوال كانت الطريقة الوحيدة لإغلاق الشريط هي لمس الشريحة
+           المتبقية من الشاشة، بلا أي زر ظاهر. -->
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="إغلاق القائمة">
+        <i class="fas fa-xmark"></i>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -216,6 +230,7 @@
 
       <!-- ════ المستخدمون ════ -->
       <div class="tab-pane" id="pane-users">
+        <div id="usersHowto"></div>
         <div class="card-sard">
           <div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">
             <div class="card-title" style="margin-bottom:0;"><i class="fas fa-users"></i> إدارة المستخدمين</div>
@@ -411,12 +426,20 @@
             <label class="toggle-wrap"><input type="checkbox" id="s-showDeleteSection"/><div class="toggle-track"></div><div class="toggle-knob"></div></label>
           </div>
           <div class="setting-row">
-            <div><div class="setting-label">رمز قفل الإعدادات</div><div class="setting-desc">فارغ = بدون قفل (يُستخدم أيضاً لقفل التحضير)</div></div>
-            <input type="password" id="s-lockCode" class="form-control" style="width:140px;" placeholder="فارغ = بدون قفل"/>
+            <div><div class="setting-label">رمز قفل الإعدادات</div><div class="setting-desc">يُستخدم أيضاً لقفل التحضير — الحالة: <b id="lockCodeState">—</b></div></div>
+            <div class="d-flex gap-2 align-center flex-wrap">
+              <input type="password" id="s-lockCode" class="form-control" style="width:130px;" placeholder="رمز جديد" autocomplete="new-password"/>
+              <button class="btn-outline-sard" style="padding:7px 11px;font-size:.8rem;" onclick="saveLockCode('lock')">تعيين</button>
+              <button class="btn-danger-sard" style="padding:7px 11px;font-size:.8rem;" onclick="clearLockCode('lock')">إزالة القفل</button>
+            </div>
           </div>
           <div class="setting-row">
-            <div><div class="setting-label">رمز تعديل المقاطع</div><div class="setting-desc">فارغ = تعديل حر للمسمّع</div></div>
-            <input type="password" id="s-editCode" class="form-control" style="width:140px;" placeholder="فارغ = تعديل حر"/>
+            <div><div class="setting-label">رمز تعديل المقاطع</div><div class="setting-desc">بدون رمز = تعديل حر للمسمّع — الحالة: <b id="editCodeState">—</b></div></div>
+            <div class="d-flex gap-2 align-center flex-wrap">
+              <input type="password" id="s-editCode" class="form-control" style="width:130px;" placeholder="رمز جديد" autocomplete="new-password"/>
+              <button class="btn-outline-sard" style="padding:7px 11px;font-size:.8rem;" onclick="saveLockCode('edit')">تعيين</button>
+              <button class="btn-danger-sard" style="padding:7px 11px;font-size:.8rem;" onclick="clearLockCode('edit')">إزالة القفل</button>
+            </div>
           </div>
         </div>
 
@@ -436,9 +459,11 @@
           <button class="btn-outline-sard mt-3" onclick="addTrackConfig()"><i class="fas fa-plus"></i> إضافة مسار</button>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:16px;">
-          <button class="btn-primary-sard" onclick="doSaveReciterSettings()" id="saveReciterBtn" style="padding:12px 28px;font-size:.95rem;">
-            <i class="fas fa-save"></i> حفظ إعدادات التسميع
+        <div id="reciterSaveState" class="autosave-bar" style="margin-top:16px;">
+          <i class="fas fa-cloud-arrow-up"></i>
+          <span id="reciterSaveText">التغييرات تُحفظ تلقائياً</span>
+          <button class="btn-outline-sard" id="reciterRetryBtn" style="padding:6px 12px;font-size:.8rem;display:none;" onclick="saveReciterSettingsNow()">
+            <i class="fas fa-rotate-right"></i> إعادة المحاولة
           </button>
         </div>
       </div>
@@ -506,7 +531,8 @@ const S = {
   users:[], halaqas:[], students:[], records:[],
   settings:{}, trackConfigs:[],
   filterStatus:'all', attData:[],
-  reportFollowups:{loading:false,summary:null,attendance:[],halaqaFilter:'__all__',halaqaTab:'absent',trackFilter:'__all__',trackTab:'absent'}
+  // قائمة متابعة واحدة: filter إما '__all__' أو 'h:اسم الحلقة' أو 't:اسم المسار'
+  reportFollowups:{loading:false,summary:null,attendance:[],filter:'__all__',tab:'absent'}
 };
 
 // ═══════════════════════════════════════
@@ -598,8 +624,17 @@ function showPane(id) {
   closeSidebar();
   if(id==='reports') renderReportFollowups();
 }
-function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+  document.body.classList.add('sidebar-locked');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+  document.body.classList.remove('sidebar-locked');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeSidebar(); });
 
 // ═══════════════════════════════════════
 // OVERVIEW
@@ -660,7 +695,40 @@ function filterUsers(status, btn) {
   if(btn)btn.classList.add('active');
   renderUsers();
 }
+// التبويب لا يُنشئ حسابات — المسمّع يسجّل نفسه عبر رابط المجمع ثم يظهر هنا.
+// وبوضع القبول «تلقائي» لا يظهر أحد كـ«معلق» أصلًا، ولهذا يبدو التبويب بلا فائدة.
+function renderUsersHowto(){
+  const el=document.getElementById('usersHowto');
+  if(!el)return;
+  const manual=(S.settings&&S.settings.registration_mode)==='manual';
+  const link=document.getElementById('complexLink')?.value||'';
+  const pending=(S.users||[]).filter(u=>u.status==='pending').length;
+
+  el.innerHTML='<div class="card-sard" style="border-inline-start:4px solid var(--primary);">'
+    +'<div class="card-title" style="margin-bottom:8px;"><i class="fas fa-circle-info"></i> كيف تُضاف الحسابات؟</div>'
+    +'<p class="text-muted" style="font-size:.87rem;margin-bottom:12px;">'
+    +'لا تُنشأ الحسابات من هنا. المسمّع يسجّل نفسه عبر <b>رابط الانضمام</b>، ثم يظهر في هذه القائمة '
+    +'فتقبله أو ترفضه أو تُلغي تفعيله لاحقاً.</p>'
+    +(link?'<div style="display:flex;gap:8px;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 13px;margin-bottom:12px;">'
+      +'<input type="text" readonly value="'+escapeAttr(link)+'" style="flex:1;border:none;background:transparent;font-size:.82rem;color:var(--primary);font-weight:600;direction:ltr;"/>'
+      +'<button class="btn-outline-sard" style="padding:6px 11px;" onclick="copyLink()"><i class="fas fa-copy"></i> نسخ</button>'
+      +'</div>':'')
+    +'<div class="setting-row" style="padding-top:0;border-bottom:none;">'
+    +'<div><div class="setting-label">وضع القبول الحالي: '
+      +(manual?'<span style="color:var(--primary);">يدوي</span>':'<span style="color:#8a6116;">تلقائي</span>')+'</div>'
+    +'<div class="setting-desc">'
+      +(manual
+        ?'كل تسجيل جديد يبقى <b>معلقاً</b> حتى تقبله من القائمة أدناه'
+          +(pending?' — لديك '+pending+' بالانتظار.':' — لا يوجد طلبات بالانتظار الآن.')
+        :'كل من يسجّل يدخل فوراً، فلن يظهر أحد كـ«معلق». لتمرّ الطلبات عليك أولاً غيّر الوضع إلى «يدوي».')
+    +'</div></div>'
+    +'<button class="btn-outline-sard" style="padding:7px 12px;font-size:.82rem;white-space:nowrap;" onclick="showPane(\'settings\')">'
+      +'<i class="fas fa-gear"></i> إعدادات القبول</button>'
+    +'</div></div>';
+}
+
 function renderUsers() {
+  renderUsersHowto();
   const q=(document.getElementById('userSearch')?.value||'').toLowerCase();
   const list=S.users.filter(u=>{
     if(S.filterStatus!=='all'&&u.status!==S.filterStatus)return false;
@@ -1181,7 +1249,7 @@ async function renderReportFollowups(){
       rf.loading=false;
     }else return;
   }
-  wrap.innerHTML=buildSupervisorHalaqaFollowupCard()+buildSupervisorTrackFollowupCard();
+  wrap.innerHTML=buildSupervisorFollowupCard();
 }
 
 function buildSupervisorReportFollowupSummary(attendance){
@@ -1243,56 +1311,79 @@ function buildSupervisorReportFollowupSummary(attendance){
   });
   var tracks=Object.keys(studentsByTrack).sort(function(a,b){return a.localeCompare(b,'ar');}).map(function(track){return{name:track,students:studentsByTrack[track]};});
 
-  return{halaqas:halaqaStats,studentsByHalaqa:studentsByHalaqa,tracks:tracks,studentsByTrack:studentsByTrack};
+  // قائمة موحّدة لكل الطلاب — تشمل من ليس له حلقة (studentsByHalaqa يُسقطهم)
+  var allStudents=(S.students||[]).map(calcSt);
+  allStudents.sort(function(a,b){return b.studentPercent-a.studentPercent;});
+
+  return{halaqas:halaqaStats,studentsByHalaqa:studentsByHalaqa,tracks:tracks,studentsByTrack:studentsByTrack,allStudents:allStudents};
 }
 
-function getSupervisorFollowupStudents(type){
+// فلتر واحد يغطي البُعدين: '__all__' أو 'h:<حلقة>' أو 't:<مسار>'
+function getSupervisorFollowupStudents(){
   var rf=S.reportFollowups,summary=rf.summary;
   if(!summary)return[];
-  if(type==='halaqa'){
-    var hf=rf.halaqaFilter||'__all__';
-    if(hf==='__all__'){
-      var all=[];
-      Object.keys(summary.studentsByHalaqa||{}).forEach(function(hName){
-        (summary.studentsByHalaqa[hName]||[]).forEach(function(st){all.push(Object.assign({},st,{halaqa:hName}));});
-      });
-      return all;
-    }
-    return(summary.studentsByHalaqa[hf]||[]).map(function(st){return Object.assign({},st,{halaqa:hf});});
-  }
-  var tf=rf.trackFilter||'__all__';
-  if(tf==='__all__'){
-    var allt=[];
-    Object.keys(summary.studentsByTrack||{}).forEach(function(track){
-      (summary.studentsByTrack[track]||[]).forEach(function(st){allt.push(Object.assign({},st,{track:track}));});
-    });
-    return allt;
-  }
-  return(summary.studentsByTrack[tf]||[]).map(function(st){return Object.assign({},st,{track:tf});});
+  var f=rf.filter||'__all__';
+  if(f==='__all__')return summary.allStudents||[];
+  var kind=f.slice(0,2),name=f.slice(2);   // اقتطاع البادئة فقط — الاسم قد يحتوي ':'
+  if(kind==='h:')return summary.studentsByHalaqa[name]||[];
+  if(kind==='t:')return summary.studentsByTrack[name]||[];
+  return summary.allStudents||[];
 }
 
-function buildSupervisorHalaqaFollowupCard(){
+function followupFilterLabel(){
+  var f=S.reportFollowups.filter||'__all__';
+  if(f==='__all__')return'كل-الطلاب';
+  return f.slice(2);
+}
+
+function buildSupervisorFollowupCard(){
   var rf=S.reportFollowups,summary=rf.summary;
   if(!summary)return'';
-  var students=getSupervisorFollowupStudents('halaqa');
+  var students=getSupervisorFollowupStudents();
   var absent=students.filter(function(st){return st.status==='absent';});
   var remaining=students.filter(function(st){return Number(st.remainingParts||0)>0;});
-  var halaqas=summary.halaqas||[];
-  var filterOpts='<option value="__all__"'+(rf.halaqaFilter==='__all__'?' selected':'')+'> كل الحلق</option>'
-    +halaqas.map(function(h){return'<option value="'+escapeAttr(h.name)+'"'+(rf.halaqaFilter===h.name?' selected':'')+'>'+escapeHtml(h.name)+'</option>';}).join('');
+  var isAbsent=rf.tab==='absent';
+  var rows=isAbsent?absent:remaining;
 
-  function makeAbsentRows(rows){
-    if(!rows.length)return'<tr><td colspan="8" class="empty-box">لا توجد بيانات</td></tr>';
-    return rows.map(function(r,i){
-      var sL=rfStatusLabel(r.status);
-      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.halaqa)+'</td></tr>';
-    }).join('');
+  // فلتر واحد بمجموعتين: الحلق والمسارات
+  var f=rf.filter||'__all__';
+  var opts='<option value="__all__"'+(f==='__all__'?' selected':'')+'>كل الطلاب ('+students.length+')</option>';
+  var halaqas=summary.halaqas||[];
+  if(halaqas.length){
+    opts+='<optgroup label="الحلق">'+halaqas.map(function(h){
+      var v='h:'+h.name;
+      return'<option value="'+escapeAttr(v)+'"'+(f===v?' selected':'')+'>'+escapeHtml(h.name)+'</option>';
+    }).join('')+'</optgroup>';
   }
-  function makeRemRows(rows){
-    if(!rows.length)return'<tr><td colspan="9" class="empty-box">لا توجد بيانات</td></tr>';
-    return rows.map(function(r,i){
-      var sL=rfStatusLabel(r.status);
-      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.passFromExpectedPercent)+'%</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.halaqa)+'</td></tr>';
+  var tracks=summary.tracks||[];
+  if(tracks.length){
+    opts+='<optgroup label="المسارات">'+tracks.map(function(t){
+      var v='t:'+t.name;
+      return'<option value="'+escapeAttr(v)+'"'+(f===v?' selected':'')+'>'+escapeHtml(t.name)+'</option>';
+    }).join('')+'</optgroup>';
+  }
+
+  var headers=isAbsent
+    ?['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الطالب','المسار','الحلقة']
+    :['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الاجتياز','نسبة الطالب','المسار','الحلقة'];
+  var thead=headers.map(function(h){return'<th>'+escapeHtml(h)+'</th>';}).join('');
+
+  var tbody;
+  if(!rows.length){
+    tbody='<tr><td colspan="'+headers.length+'" class="empty-box">لا توجد بيانات</td></tr>';
+  }else{
+    tbody=rows.map(function(r,i){
+      var cells='<td>'+(i+1)+'</td>'
+        +'<td><b>'+escapeHtml(r.name)+'</b></td>'
+        +'<td>'+escapeHtml(rfStatusLabel(r.status))+'</td>'
+        +'<td>'+rfN(r.expectedParts)+'</td>'
+        +'<td>'+rfN(r.displayedParts)+'</td>'
+        +'<td>'+rfN(r.remainingParts)+'</td>';
+      if(!isAbsent)cells+='<td>'+rfP(r.passFromExpectedPercent)+'%</td>';
+      cells+='<td>'+rfP(r.studentPercent)+'%</td>'
+        +'<td>'+escapeHtml(r.track||'—')+'</td>'
+        +'<td>'+escapeHtml(r.halaqa||'—')+'</td>';
+      return'<tr>'+cells+'</tr>';
     }).join('');
   }
 
@@ -1301,97 +1392,43 @@ function buildSupervisorHalaqaFollowupCard(){
     +'<div class="card-title" style="margin-bottom:0;"><i class="fas fa-users-viewfinder" style="color:var(--gold);"></i> قوائم المتابعة</div>'
     +'<div class="section-tools">'
     +'<span class="text-muted fw-bold" style="font-size:.85rem;">فلترة:</span>'
-    +'<select class="sard-select" onchange="setReportFollowupFilter(\'halaqa\',this.value)">'+filterOpts+'</select>'
-    +'<button class="subtab-btn '+(rf.halaqaTab==='absent'?'active':'')+'" id="rf-halaqa-stab-absent" onclick="setReportFollowupTab(\'halaqa\',\'absent\')">الطلاب الغائبون ('+absent.length+')</button>'
-    +'<button class="subtab-btn '+(rf.halaqaTab==='remaining'?'active':'')+'" id="rf-halaqa-stab-remaining" onclick="setReportFollowupTab(\'halaqa\',\'remaining\')">المتبقي عليهم عرض ('+remaining.length+')</button>'
-    +'<button class="btn-excel-sard" onclick="exportReportFollowups(\'halaqa\')"><i class="fas fa-file-export"></i> تصدير</button>'
+    +'<select class="sard-select" onchange="setReportFollowupFilter(this.value)">'+opts+'</select>'
+    +'<button class="subtab-btn '+(isAbsent?'active':'')+'" onclick="setReportFollowupTab(\'absent\')">الطلاب الغائبون ('+absent.length+')</button>'
+    +'<button class="subtab-btn '+(!isAbsent?'active':'')+'" onclick="setReportFollowupTab(\'remaining\')">المتبقي عليهم عرض ('+remaining.length+')</button>'
+    +'<button class="btn-excel-sard" onclick="exportReportFollowups()"><i class="fas fa-file-export"></i> تصدير</button>'
     +'</div></div>'
-    +'<div id="rf-halaqa-sptab-absent"'+(rf.halaqaTab==='absent'?'':' style="display:none;"')+'>'
-    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الطالب</th><th>الحلقة</th></tr></thead>'
-    +'<tbody>'+makeAbsentRows(absent)+'</tbody></table></div></div>'
-    +'<div id="rf-halaqa-sptab-remaining"'+(rf.halaqaTab==='remaining'?'':' style="display:none;"')+'>'
-    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الاجتياز</th><th>نسبة الطالب</th><th>الحلقة</th></tr></thead>'
-    +'<tbody>'+makeRemRows(remaining)+'</tbody></table></div></div>'
+    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr>'+thead+'</tr></thead>'
+    +'<tbody>'+tbody+'</tbody></table></div>'
     +'</div>';
 }
 
-function buildSupervisorTrackFollowupCard(){
-  var rf=S.reportFollowups,summary=rf.summary;
-  if(!summary)return'';
-  var students=getSupervisorFollowupStudents('track');
-  var absent=students.filter(function(st){return st.status==='absent';});
-  var remaining=students.filter(function(st){return Number(st.remainingParts||0)>0;});
-  var tracks=summary.tracks||[];
-  var filterOpts='<option value="__all__"'+(rf.trackFilter==='__all__'?' selected':'')+'> كل المسارات</option>'
-    +tracks.map(function(t){return'<option value="'+escapeAttr(t.name)+'"'+(rf.trackFilter===t.name?' selected':'')+'>'+escapeHtml(t.name)+'</option>';}).join('');
-
-  function makeAbsentRows(rows){
-    if(!rows.length)return'<tr><td colspan="9" class="empty-box">لا توجد بيانات</td></tr>';
-    return rows.map(function(r,i){
-      var sL=rfStatusLabel(r.status);
-      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.track)+'</td><td>'+escapeHtml(r.halaqa||'—')+'</td></tr>';
-    }).join('');
-  }
-  function makeRemRows(rows){
-    if(!rows.length)return'<tr><td colspan="10" class="empty-box">لا توجد بيانات</td></tr>';
-    return rows.map(function(r,i){
-      var sL=rfStatusLabel(r.status);
-      return'<tr><td>'+(i+1)+'</td><td><b>'+escapeHtml(r.name)+'</b></td><td>'+escapeHtml(sL)+'</td><td>'+rfN(r.expectedParts)+'</td><td>'+rfN(r.displayedParts)+'</td><td>'+rfN(r.remainingParts)+'</td><td>'+rfP(r.passFromExpectedPercent)+'%</td><td>'+rfP(r.studentPercent)+'%</td><td>'+escapeHtml(r.track)+'</td><td>'+escapeHtml(r.halaqa||'—')+'</td></tr>';
-    }).join('');
-  }
-
-  return'<div class="card-sard animate-in">'
-    +'<div class="d-flex justify-between align-center flex-wrap gap-2" style="margin-bottom:14px;">'
-    +'<div class="card-title" style="margin-bottom:0;"><i class="fas fa-users-viewfinder" style="color:var(--gold);"></i>قوائم المتابعة</div>'
-    +'<div class="section-tools">'
-    +'<span class="text-muted fw-bold" style="font-size:.85rem;">فلترة:</span>'
-    +'<select class="sard-select" onchange="setReportFollowupFilter(\'track\',this.value)">'+filterOpts+'</select>'
-    +'<button class="subtab-btn '+(rf.trackTab==='absent'?'active':'')+'" id="rf-track-stab-absent" onclick="setReportFollowupTab(\'track\',\'absent\')">الطلاب الغائبون ('+absent.length+')</button>'
-    +'<button class="subtab-btn '+(rf.trackTab==='remaining'?'active':'')+'" id="rf-track-stab-remaining" onclick="setReportFollowupTab(\'track\',\'remaining\')">المتبقي عليهم عرض ('+remaining.length+')</button>'
-    +'<button class="btn-excel-sard" onclick="exportReportFollowups(\'track\')"><i class="fas fa-file-export"></i> تصدير</button>'
-    +'</div></div>'
-    +'<div id="rf-track-sptab-absent"'+(rf.trackTab==='absent'?'':' style="display:none;"')+'>'
-    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الطالب</th><th>المسار</th><th>الحلقة</th></tr></thead>'
-    +'<tbody>'+makeAbsentRows(absent)+'</tbody></table></div></div>'
-    +'<div id="rf-track-sptab-remaining"'+(rf.trackTab==='remaining'?'':' style="display:none;"')+'>'
-    +'<div class="tbl-wrap"><table class="sard-table"><thead><tr><th>#</th><th>اسم الطالب</th><th>الحالة</th><th>المفترض</th><th>المعروضة</th><th>المتبقي</th><th>نسبة الاجتياز</th><th>نسبة الطالب</th><th>المسار</th><th>الحلقة</th></tr></thead>'
-    +'<tbody>'+makeRemRows(remaining)+'</tbody></table></div></div>'
-    +'</div>';
-}
-
-function setReportFollowupTab(type,tab){
-  if(type==='halaqa')S.reportFollowups.halaqaTab=tab;
-  else S.reportFollowups.trackTab=tab;
+function setReportFollowupTab(tab){
+  S.reportFollowups.tab=tab;
   renderReportFollowups();
 }
-function setReportFollowupFilter(type,value){
-  if(type==='halaqa')S.reportFollowups.halaqaFilter=value||'__all__';
-  else S.reportFollowups.trackFilter=value||'__all__';
+function setReportFollowupFilter(value){
+  S.reportFollowups.filter=value||'__all__';
   renderReportFollowups();
 }
 
-function exportReportFollowups(type){
-  var rf=S.reportFollowups;
-  var students=getSupervisorFollowupStudents(type);
-  var tab=type==='halaqa'?rf.halaqaTab:rf.trackTab;
-  var isAbsent=tab==='absent';
-  var filtered=isAbsent?students.filter(function(st){return st.status==='absent';}):students.filter(function(st){return Number(st.remainingParts||0)>0;});
-  if(!filtered.length){alert('لا توجد بيانات');return;}
-  var headers,rows,filterLabel;
-  if(type==='halaqa'){
-    headers=isAbsent?['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الطالب','الحلقة']:['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الاجتياز','نسبة الطالب','الحلقة'];
-    rows=filtered.map(function(r,i){
-      return isAbsent?[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.studentPercent||0)+'%',r.halaqa||'']:[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.passFromExpectedPercent||0)+'%',rfP(r.studentPercent||0)+'%',r.halaqa||''];
-    });
-    filterLabel=rf.halaqaFilter==='__all__'?'كل-الحلق':rf.halaqaFilter;
-  }else{
-    headers=isAbsent?['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الطالب','المسار','الحلقة']:['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الاجتياز','نسبة الطالب','المسار','الحلقة'];
-    rows=filtered.map(function(r,i){
-      return isAbsent?[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.studentPercent||0)+'%',r.track||'',r.halaqa||'']:[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0,rfP(r.passFromExpectedPercent||0)+'%',rfP(r.studentPercent||0)+'%',r.track||'',r.halaqa||''];
-    });
-    filterLabel=rf.trackFilter==='__all__'?'كل-المسارات':rf.trackFilter;
-  }
-  exportReportFollowupExcel((isAbsent?'الغائبون':'المتبقي-عليهم')+'-'+rfSafeFileName(filterLabel)+'.xls',headers,rows);
+function exportReportFollowups(){
+  var isAbsent=S.reportFollowups.tab==='absent';
+  var students=getSupervisorFollowupStudents();
+  var filtered=isAbsent
+    ?students.filter(function(st){return st.status==='absent';})
+    :students.filter(function(st){return Number(st.remainingParts||0)>0;});
+  if(!filtered.length){showToast('لا توجد بيانات للتصدير','warning');return;}
+
+  var headers=isAbsent
+    ?['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الطالب','المسار','الحلقة']
+    :['#','اسم الطالب','الحالة','المفترض','المعروضة','المتبقي','نسبة الاجتياز','نسبة الطالب','المسار','الحلقة'];
+  var rows=filtered.map(function(r,i){
+    var row=[i+1,r.name||'',rfStatusLabel(r.status),r.expectedParts||0,r.displayedParts||0,r.remainingParts||0];
+    if(!isAbsent)row.push(rfP(r.passFromExpectedPercent||0)+'%');
+    row.push(rfP(r.studentPercent||0)+'%',r.track||'',r.halaqa||'');
+    return row;
+  });
+  exportReportFollowupExcel((isAbsent?'الغائبون':'المتبقي-عليهم')+'-'+rfSafeFileName(followupFilterLabel())+'.xls',headers,rows);
 }
 
 function exportReportFollowupExcel(filename,headers,rows){
@@ -1434,6 +1471,7 @@ function loadSettingsForm() {
   setCheck('s-showDeleteSection', s.show_delete_section??false);
   setValue('s-lockCode','');
   setValue('s-editCode','');
+  renderLockCodeStates();
   setValue('s-whatsapp', s.whatsapp_template||'');
   // المسارات
   renderTrackConfigs();
@@ -1442,6 +1480,9 @@ function loadSettingsForm() {
   setValue('regMode', s.registration_mode||'auto');
   setValue('approvalTemplate', s.approval_whatsapp_template||'');
   setValue('complexManagerName', s.manager_name||'');
+  // الحفظ التلقائي يُربط بعد تعبئة الحقول حتى لا تُطلق التعبئة حفظًا
+  wireReciterAutoSave();
+  setReciterSaveState('','التغييرات تُحفظ تلقائياً');
 }
 
 function setValue(id,v){const el=document.getElementById(id);if(el)el.value=v;}
@@ -1486,12 +1527,52 @@ function renderTrackConfigs(){
     list.appendChild(d);
   });
 }
-function updateTC(idx,field,val){S.trackConfigs[idx][field]=val;}
-function addTrackConfig(){S.trackConfigs.push({name:'',parts_divisions:2,mistake_deduction:0.5,warning_deduction:0.25,passing_score:7});renderTrackConfigs();}
-function removeTC(idx){S.trackConfigs.splice(idx,1);renderTrackConfigs();}
+function trackNamesFromStudents(){
+  const names={};(S.students||[]).forEach(s=>{if(s.track)names[s.track]=true;});
+  return Object.keys(names).sort((a,b)=>a.localeCompare(b,'ar'));
+}
 
-async function doSaveReciterSettings() {
-  const fields={
+function updateTC(idx,field,val){
+  // اسمان متطابقان يجعلان الـ upsert يصطدم بنفس الصف مرتين
+  if(field==='name'&&(S.trackConfigs||[]).some((c,i)=>i!==idx&&c.name===val)){
+    showToast('هذا المسار مُهيَّأ بالفعل','warning');
+    renderTrackConfigs();
+    return;
+  }
+  S.trackConfigs[idx][field]=val;
+  scheduleReciterSave();
+}
+
+// كان يُضيف مساراً باسم فارغ، والحفظ يُسقط ما لا اسم له بصمت
+// فيظن المشرف أنه أضاف مساراً ولم يُضف شيء.
+function addTrackConfig(){
+  const used=new Set((S.trackConfigs||[]).map(c=>c.name));
+  const names=trackNamesFromStudents();
+  if(!names.length){showToast('لا توجد مسارات مسجَّلة لدى الطلاب بعد','warning');return;}
+  const free=names.find(n=>!used.has(n));
+  if(!free){showToast('كل المسارات مُهيَّأة بالفعل','info');return;}
+  S.trackConfigs.push({name:free,parts_divisions:2,mistake_deduction:0.5,warning_deduction:0.25,passing_score:7});
+  renderTrackConfigs();
+  scheduleReciterSave();
+}
+
+function removeTC(idx){S.trackConfigs.splice(idx,1);renderTrackConfigs();scheduleReciterSave();}
+
+// ── الحفظ التلقائي لإعدادات التسميع ──
+// الأرقام السرية مستثناة عن قصد: حفظها أثناء الكتابة يُثبّت رمزاً ناقصاً.
+let _recTimer=null,_recSaving=false,_recQueued=false,_recWired=false;
+
+function setReciterSaveState(state,text){
+  const bar=document.getElementById('reciterSaveState');
+  const txt=document.getElementById('reciterSaveText');
+  const retry=document.getElementById('reciterRetryBtn');
+  if(bar)bar.className='autosave-bar'+(state?' is-'+state:'');
+  if(txt)txt.textContent=text;
+  if(retry)retry.style.display=state==='error'?'':'none';
+}
+
+function collectReciterSettings(){
+  return{
     parts_divisions:    Number(getValue('s-partsDivisions')),
     mistake_deduction:  Number(getValue('s-mistakeDeduction')),
     warning_deduction:  Number(getValue('s-warningDeduction')),
@@ -1505,41 +1586,125 @@ async function doSaveReciterSettings() {
     whatsapp_template:          getValue('s-whatsapp').trim(),
     active_track:               getValue('s-activeTrack').trim()
   };
-  const lc=getValue('s-lockCode').trim();
-  if(lc)fields.settings_lock_code=lc;
-  const ec=getValue('s-editCode').trim();
-  if(ec)fields.edit_sections_code=ec;
+}
 
-  const btn=document.getElementById('saveReciterBtn');
-  btnLoading(btn,'جارٍ الحفظ...');
+// أعلى درجة ممكنة للمقطع = 20 ÷ التقسيم. لو تجاوزتها درجة النجاح استحال النجاح
+// على كل الطلاب بصمت — نمنع حفظ هذه الحالة بدل تركها تُفسد الحسابات.
+function reciterSettingsProblem(f){
+  if(!Number.isFinite(f.passing_score)||f.passing_score<0)return'درجة النجاح غير صحيحة';
+  if(!Number.isFinite(f.mistake_deduction)||f.mistake_deduction<0)return'خصم الخطأ غير صحيح';
+  if(!Number.isFinite(f.warning_deduction)||f.warning_deduction<0)return'خصم التنبيه غير صحيح';
+  const max=20/(Number(f.parts_divisions)||2);
+  if(f.passing_score>max)
+    return'درجة النجاح ('+f.passing_score+') أكبر من أعلى درجة ممكنة ('+max+') مع تقسيم '+f.parts_divisions+' — لن ينجح أي طالب.';
+  for(const tc of(S.trackConfigs||[])){
+    if(!tc.name)continue;
+    const tmax=20/(Number(tc.parts_divisions)||2);
+    if(Number(tc.passing_score)>tmax)
+      return'مسار «'+tc.name+'»: درجة النجاح ('+tc.passing_score+') أكبر من أعلى درجة ممكنة ('+tmax+').';
+  }
+  return'';
+}
+
+function scheduleReciterSave(){
+  clearTimeout(_recTimer);
+  setReciterSaveState('saving','جارٍ الحفظ...');
+  _recTimer=setTimeout(saveReciterSettingsNow,700);
+}
+
+async function saveReciterSettingsNow(){
+  clearTimeout(_recTimer);
+  if(_recSaving){_recQueued=true;return;}          // تعديل أثناء حفظ جارٍ → نعيد الجدولة بعده
+  const fields=collectReciterSettings();
+  const problem=reciterSettingsProblem(fields);
+  if(problem){setReciterSaveState('error',problem);return;}
+  _recSaving=true;
+  setReciterSaveState('saving','جارٍ الحفظ...');
   try{
     await SardAPI.saveSettings(S.complexId,fields);
     await SardAPI.saveTrackConfigs(S.complexId,S.trackConfigs);
     Object.assign(S.settings,fields);
-    btnReset(btn);
-    showSaveSuccess('تم حفظ إعدادات التسميع ✓');
-  }catch(e){btnReset(btn);showToast('خطأ: '+e.message,'error');}
+    setReciterSaveState('saved','تم الحفظ ✓');
+  }catch(e){
+    setReciterSaveState('error','تعذّر الحفظ: '+(e.message||e));
+  }finally{
+    _recSaving=false;
+    if(_recQueued){_recQueued=false;scheduleReciterSave();}
+  }
+}
+
+function wireReciterAutoSave(){
+  if(_recWired)return;
+  _recWired=true;
+  ['s-partsDivisions','s-mistakeDeduction','s-warningDeduction','s-passingScore',
+   's-showTrack','s-hideHalaqas','s-requireFail','s-activeTrack','s-lockFullFile',
+   's-showReports','s-showDeleteSection','s-whatsapp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.addEventListener((el.type==='checkbox'||el.tagName==='SELECT')?'change':'input',scheduleReciterSave);
+  });
+}
+
+// ── الأرقام السرية: تعيين وإزالة صريحان ──
+// سابقًا كان الحقل يبدأ فارغًا والفراغ يعني «أبقِ الرمز»، فلا سبيل لإزالة قفل أبدًا.
+function renderLockCodeStates(){
+  const l=document.getElementById('lockCodeState');
+  const e=document.getElementById('editCodeState');
+  if(l)l.textContent=(S.settings&&S.settings.settings_lock_code)?'مُفعَّل':'بدون قفل';
+  if(e)e.textContent=(S.settings&&S.settings.edit_sections_code)?'مُفعَّل':'تعديل حر';
+}
+
+async function saveLockCode(which){
+  const id=which==='lock'?'s-lockCode':'s-editCode';
+  const col=which==='lock'?'settings_lock_code':'edit_sections_code';
+  const code=getValue(id).trim();
+  if(!code){showToast('أدخل الرمز أولاً، أو اضغط «إزالة القفل»','warning');return;}
+  try{
+    await SardAPI.saveSettings(S.complexId,{[col]:code});
+    S.settings[col]=code;
+    setValue(id,'');
+    renderLockCodeStates();
+    showSaveSuccess('تم تعيين الرمز ✓');
+  }catch(e){showToast('تعذّر الحفظ: '+(e.message||e),'error');}
+}
+
+async function clearLockCode(which){
+  const id=which==='lock'?'s-lockCode':'s-editCode';
+  const col=which==='lock'?'settings_lock_code':'edit_sections_code';
+  if(!(S.settings&&S.settings[col])){showToast('لا يوجد قفل مُفعَّل','info');return;}
+  const r=await Swal.fire({icon:'warning',title:'إزالة القفل؟',text:'سيصبح هذا الجزء متاحاً بدون رمز.',showCancelButton:true,confirmButtonText:'إزالة',cancelButtonText:'تراجع',confirmButtonColor:'#c0392b',cancelButtonColor:'#014979'});
+  if(!r.isConfirmed)return;
+  try{
+    await SardAPI.saveSettings(S.complexId,{[col]:''});
+    S.settings[col]='';
+    setValue(id,'');
+    renderLockCodeStates();
+    showSaveSuccess('تم إزالة القفل ✓');
+  }catch(e){showToast('تعذّر الحفظ: '+(e.message||e),'error');}
+}
+
+// الثلاث دوال التالية كانت بلا try/catch: أي فشل في الحفظ يمر بصمت تام
+// فلا رسالة نجاح ولا خطأ، ويظن المشرف أن الإعداد حُفظ.
+async function saveComplexSetting(col,value,okMsg){
+  try{
+    await SardAPI.saveSettings(S.complexId,{[col]:value});
+    S.settings[col]=value;
+    showSaveSuccess(okMsg);
+  }catch(e){
+    showToast('تعذّر الحفظ: '+(e.message||e),'error');
+  }
 }
 
 async function saveRegMode() {
-  const mode=getValue('regMode');
-  await SardAPI.saveSettings(S.complexId,{registration_mode:mode});
-  S.settings.registration_mode=mode;
-  showSaveSuccess('تم الحفظ');
+  await saveComplexSetting('registration_mode',getValue('regMode'),'تم حفظ وضع التسجيل');
 }
 
 async function saveManagerName() {
-  const name=getValue('complexManagerName').trim();
-  await SardAPI.saveSettings(S.complexId,{manager_name:name});
-  S.settings.manager_name=name;
-  showSaveSuccess('تم حفظ اسم المدير');
+  await saveComplexSetting('manager_name',getValue('complexManagerName').trim(),'تم حفظ اسم المدير');
 }
 
 async function saveApprovalTemplate() {
-  const tpl=getValue('approvalTemplate').trim();
-  await SardAPI.saveSettings(S.complexId,{approval_whatsapp_template:tpl});
-  S.settings.approval_whatsapp_template=tpl;
-  showSaveSuccess('تم حفظ القالب');
+  await saveComplexSetting('approval_whatsapp_template',getValue('approvalTemplate').trim(),'تم حفظ القالب');
 }
 
 function copyLink(){

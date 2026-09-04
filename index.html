@@ -138,6 +138,9 @@
         <label class="d-block fw-bold" style="margin-bottom:6px;font-size:.88rem;">كلمة المرور</label>
         <input type="password" id="staffPassword2" class="form-control" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter')doStaffLogin2()"/>
         <button class="btn-primary-sard w-100" onclick="doStaffLogin2()" style="justify-content:center;padding:13px;"><i class="fas fa-sign-in-alt"></i> دخول</button>
+        <div style="text-align:center;margin-top:12px;">
+          <a href="#" onclick="goResetPassword();return false;" style="color:var(--primary);font-size:.85rem;font-weight:600;text-decoration:none;">نسيت كلمة المرور؟</a>
+        </div>
       </div>
       <!-- بانتظار الموافقة -->
       <div id="pendingWrap" style="display:none;text-align:center;padding:20px 0;">
@@ -174,6 +177,7 @@
   <button class="mob-btn" onclick="showView('attendance')" id="mb-attendance" style="display:none;"><i class="fas fa-clipboard-check"></i><span>التحضير</span></button>
   <button class="mob-btn" onclick="goReports()" id="mb-reports" style="display:none;"><i class="fas fa-chart-bar"></i><span>التقارير</span></button>
   <button class="mob-btn" onclick="showView('settings')" id="mb-settings" style="display:none;"><i class="fas fa-cog"></i><span>الإعدادات</span></button>
+  <button class="mob-btn" onclick="goSupervisor()" id="mb-supervisor" style="display:none;"><i class="fas fa-shield-halved"></i><span>لوحة المشرف</span></button>
 </div>
 
 <!-- ══ APP ══ -->
@@ -366,8 +370,12 @@ async function loadData(){
 
   // المشرف فقط: زر لوحة المشرف
   if(isSupervisor){
-    const nbSup=document.getElementById('nb-supervisor');
-    if(nbSup)nbSup.style.display='';
+    // على الجوال ‏.nav-links مخفي بـ CSS، فبدون نسخة في الشريط السفلي
+    // لا يستطيع المشرف الوصول للوحته من الجوال إطلاقًا.
+    ['nb-supervisor','mb-supervisor'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.style.display='';
+    });
   }
   // الإعدادات والتحضير: تُدار من supervisor.html فقط - لا تظهر هنا لأحد
     renderHalaqas();loadAttHalaqas();loadSettingsForm();applyReportsBtn();hideSpinner();
@@ -378,10 +386,32 @@ function dbS(s){if(!s)return{};return{partsDivisions:s.parts_divisions??2,mistak
 function appS(s){return{parts_divisions:s.partsDivisions,mistake_deduction:s.mistakeDeduction,warning_deduction:s.warningDeduction,passing_score:s.passingScorePerSection,show_track_in_selection:s.showTrackInSelection,hide_halaqas_use_tracks:s.hideHalaqasAndUseTracksOnly,require_fail_reason:s.requireFailReason,active_track:s.activeTrackForSelection,show_reports_button:s.showReportsButton,lock_full_file:s.lockFullFile,show_delete_section:s.showDeleteSectionButton,settings_lock_code:s.settingsLockCode,edit_sections_code:s.editSectionsCode,whatsapp_template:s.whatsappTemplate};}
 
 async function doLogout(){if(!STATE.isGuest){const r=await Swal.fire({title:'تسجيل الخروج',text:'هل تريد الخروج؟',icon:'question',showCancelButton:true,confirmButtonText:'خروج',cancelButtonText:'إلغاء',confirmButtonColor:'#014979'});if(!r.isConfirmed)return;await SardAPI.signOut();}localStorage.removeItem('sard_guest_'+STATE.complexCode);sessionStorage.clear();location.reload();}
-function goSupervisor(){location.href='supervisor.html?c='+STATE.complexCode;}
+// نمرّر رمز المجمع والبريد المكتوب حتى لا يعيد المستخدم إدخالهما
+function goResetPassword(){
+  const p=new URLSearchParams();
+  const code=STATE.complexCode||localStorage.getItem('sard_complex_code')||'';
+  if(code)p.set('c',code);
+  const typed=(document.getElementById('staffEmail2')?.value||document.getElementById('staffEmail')?.value||'').trim();
+  if(typed.includes('@'))p.set('email',typed);
+  const qs=p.toString();
+  location.href='reset-password.html'+(qs?'?'+qs:'');
+}
+
+function goSupervisor(){
+  const go=()=>{location.href='supervisor.html?c='+STATE.complexCode;};
+  // مغادرة الصفحة كليًا تفقد التسميع غير المحفوظ، فنسأل كما تفعل showView.
+  if(hasUnsaved()){
+    Swal.fire({icon:'warning',title:'مغادرة بدون حفظ',text:'لديك بيانات تسميع غير محفوظة.',showCancelButton:true,confirmButtonText:'مغادرة',cancelButtonText:'تراجع',confirmButtonColor:'#c0392b',cancelButtonColor:'#014979'})
+      .then(r=>{if(r.isConfirmed)go();});
+    return;
+  }
+  go();
+}
 function goReports(){window.open('pages/report-complex.html?c='+STATE.complexCode,'_blank');}
 function applyReportsBtn(){const show=!!STATE.settings.showReportsButton;['nb-reports','mb-reports'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none';});}
-function syncMNav(){const mn=document.getElementById('mobileNav');if(!mn)return;const active=document.querySelector('.view.active');const isEval=active&&active.id==='view-evaluation';mn.style.setProperty('display',(window.innerWidth<=640&&!isEval)?'flex':'none','important');}
+// الشريط يبقى ظاهرًا في شاشة التسميع أيضًا: ‏.sticky-bottom مضبوط على bottom:70px
+// أي أن CSS يحجز مكانه أصلًا فوق الشريط، وإخفاؤه كان يترك فراغًا ويقطع طريق الرجوع.
+function syncMNav(){const mn=document.getElementById('mobileNav');if(!mn)return;mn.style.setProperty('display',window.innerWidth<=640?'flex':'none','important');}
 window.addEventListener('resize',syncMNav);
 function _doShowView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const t=document.getElementById('view-'+id);if(t){t.classList.add('active');t.style.opacity='0';t.style.transform='translateY(8px)';requestAnimationFrame(()=>{t.style.transition='opacity .22s,transform .22s';t.style.opacity='1';t.style.transform='none';});}document.querySelectorAll('.nav-link-btn,.mob-btn').forEach(b=>b.classList.remove('active'));const nb=document.getElementById('nb-'+id),mb=document.getElementById('mb-'+id);if(nb){nb.classList.add('active');pulseBtn(nb);}if(mb)mb.classList.add('active');if(id==='attendance')checkAttLock();syncMNav();window.scrollTo({top:0,behavior:'smooth'});}
 function hasUnsaved(){if(!STATE.evalRecord)return false;return STATE.evalSections.some(s=>s._editing&&(s.partNumber||s.hizb||s.mistakes>0||s.warnings>0));}

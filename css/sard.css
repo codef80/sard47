@@ -225,6 +225,24 @@ input[type="number"].native-input::-webkit-outer-spin-button, input[type="number
 .setting-label { font-size: .93rem; font-weight: 600; color: var(--text); }
 .setting-desc  { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
 
+/* على الجوال كان عمود العنوان ينضغط إلى ~110px بجانب الحقل، فيتكسّر الوصف
+   على ثلاثة أسطر. نُكدّس العنوان فوق الحقل، ونستثني المفاتيح الصغيرة
+   (toggle) لأنها لا تزحم العنوان أصلًا. */
+@media(max-width:640px) {
+  .setting-row { flex-direction: column; align-items: stretch; gap: 9px; }
+  .setting-row > *:last-child { align-self: flex-start; }
+  .setting-row:has(> .toggle-wrap:last-child) { flex-direction: row; align-items: center; }
+  .setting-row:has(> .toggle-wrap:last-child) > *:last-child { align-self: center; }
+}
+
+/* شريط حالة الحفظ التلقائي — بديل زر الحفظ */
+.autosave-bar { display: flex; align-items: center; gap: 9px; padding: 11px 15px; border-radius: 10px;
+  font-size: .87rem; font-weight: 600; background: #eef4f8; color: #47606d; border: 1px solid var(--border); }
+.autosave-bar i { font-size: .95rem; }
+.autosave-bar.is-saving { background: #fdf6e3; color: #8a6116; border-color: #e8d9ae; }
+.autosave-bar.is-saved  { background: #e8f6ef; color: #0b5f4e; border-color: #b8e0cf; }
+.autosave-bar.is-error  { background: #fdecea; color: #9c1f13; border-color: #f2c2bc; }
+
 /* ─── TOGGLE ─── */
 .toggle-wrap { position: relative; width: 48px; height: 26px; cursor: pointer; flex-shrink: 0; }
 .toggle-wrap input { display: none; }

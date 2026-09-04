@@ -40,34 +40,53 @@ const SardAPI = {
     return data.session;
   },
 
-  async signIn(emailOrPhone,password,complexCode=''){
-    let loginEmail=String(emailOrPhone||'').trim();
-    const originalLogin=loginEmail;
-    const code=normalizeComplexCode(complexCode||localStorage.getItem('sard_complex_code')||'');
-    const isPhone=/^(05|5)[0-9]{7,8}$/.test(loginEmail.replace(/[\s-]/g,''));
+  // يحوّل ما كتبه المستخدم (بريد حقيقي أو جوال) إلى بريد Auth الفعلي.
+  // complexCode يجب أن يُمرَّر صريحًا من صفحة الدخول — لا نقرأه من localStorage:
+  // السوبر أدمن لا ينتمي لأي مجمع، فلو بقي رمز مجمع من زيارة سابقة لتحوّل
+  // بريده إلى name+sardCODE@domain وفشل دخوله.
+  async resolveAuthEmail(loginInput,complexCode=''){
+    const originalLogin=String(loginInput||'').trim();
+    const code=normalizeComplexCode(complexCode||'');
+    if(!code)return originalLogin;
 
+    const isPhone=/^(05|5)[0-9]{7,8}$/.test(originalLogin.replace(/[\s-]/g,''));
     // مع رمز المجمع نحاول جلب auth_email المخزن، وهذا يحافظ على المستخدمين القدامى أيضًا.
-    if(code){
-      const{data:lookupAuthEmail,error:lookupError}=await _sb.rpc('get_auth_email_for_login',{
-        p_complex_code:code,
-        p_login:originalLogin
-      });
+    const{data:lookupAuthEmail,error:lookupError}=await _sb.rpc('get_auth_email_for_login',{
+      p_complex_code:code,
+      p_login:originalLogin
+    });
 
-      if(!lookupError&&lookupAuthEmail){
-        loginEmail=lookupAuthEmail;
-      }else if(!isPhone){
-        // fallback للمستخدمين الجدد إذا لم توجد دالة SQL أو لم يوجد profile بعد.
-        loginEmail=buildAuthEmail(originalLogin,code);
-      }else{
-        if(lookupError&&String(lookupError.message||'').includes('function')){
-          throw new Error('شغّل ملف fix_registration_email_per_complex.sql أولاً لتفعيل الدخول بالجوال');
-        }
-        throw new Error('رقم الجوال غير مسجل في هذا المجمع');
-      }
+    if(!lookupError&&lookupAuthEmail)return lookupAuthEmail;
+    // fallback للمستخدمين الجدد إذا لم توجد دالة SQL أو لم يوجد profile بعد.
+    if(!isPhone)return buildAuthEmail(originalLogin,code);
+    if(lookupError&&String(lookupError.message||'').includes('function')){
+      throw new Error('شغّل ملف fix_registration_email_per_complex.sql أولاً لتفعيل الدخول بالجوال');
     }
+    throw new Error('رقم الجوال غير مسجل في هذا المجمع');
+  },
 
+  async signIn(emailOrPhone,password,complexCode=''){
+    const loginEmail=await this.resolveAuthEmail(emailOrPhone,complexCode);
     const{data,error}=await _sb.auth.signInWithPassword({email:loginEmail,password});
     if(error)throw new Error(error.message==='Invalid login credentials'?'البريد/الجوال أو كلمة المرور غير صحيحة':error.message);
+    return data;
+  },
+
+  // ── استعادة كلمة المرور ──
+  // رسالة الاستعادة تُرسل إلى بريد Auth. ومع تحويل البريد لكل مجمع
+  // (name+sardCODE@domain) تصل الرسالة لنفس صندوق name@domain، فالمسار سليم.
+  async requestPasswordReset(loginInput,complexCode=''){
+    const email=await this.resolveAuthEmail(loginInput,complexCode);
+    if(!email||!email.includes('@'))throw new Error('أدخل بريداً إلكترونياً صحيحاً');
+    const base=location.origin+location.pathname.replace(/[^/]*$/,'');
+    const{error}=await _sb.auth.resetPasswordForEmail(email,{redirectTo:base+'reset-password.html'});
+    if(error)throw new Error(error.message);
+    return email;
+  },
+
+  async setNewPassword(password){
+    const{data,error}=await _sb.auth.updateUser({password});
+    if(error)throw new Error(error.message);
     return data;
   },
 
@@ -303,8 +322,10 @@ const SardAPI = {
     return data||[];
   },
 
+  // كان يحذف كل مسارات المجمع أولًا ثم يُدخل، فأي فشل في الإدخال يفقدها كلها.
+  // الآن: upsert أولًا (يعتمد على القيد UNIQUE(complex_id,name))، ثم حذف ما أُزيل
+  // من الواجهة فقط — والحذف بالمعرّفات لا بمطابقة أسماء داخل نص استعلام.
   async saveTrackConfigs(complexId,configs){
-    await _sb.from('track_configs').delete().eq('complex_id',complexId);
     const valid=(configs||[]).filter(c=>c.name);
     if(valid.length){
       const rows=valid.map(c=>({
@@ -315,7 +336,17 @@ const SardAPI = {
         warning_deduction:Number(c.warning_deduction)||0.25,
         passing_score:Number(c.passing_score)||7
       }));
-      const{error}=await _sb.from('track_configs').insert(rows);
+      const{error}=await _sb.from('track_configs')
+        .upsert(rows,{onConflict:'complex_id,name'});
+      if(error)throw error;
+    }
+    const{data:existing,error:selError}=await _sb.from('track_configs')
+      .select('id,name').eq('complex_id',complexId);
+    if(selError)throw selError;
+    const keep=new Set(valid.map(c=>c.name));
+    const stale=(existing||[]).filter(r=>!keep.has(r.name)).map(r=>r.id);
+    if(stale.length){
+      const{error}=await _sb.from('track_configs').delete().in('id',stale);
       if(error)throw error;
     }
   },
