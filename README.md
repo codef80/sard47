@@ -9,6 +9,7 @@ sard/
 ├── supervisor.html         ← لوحة المشرف
 ├── superadmin.html         ← لوحة السوبر أدمن
 ├── fix_rls.sql             ← ⚠ شغّله أولاً في Supabase
+├── fix_records_merge.sql   ← ⚠ يمنع فقد التسميعات عند تعدد المسمّعين
 ├── supabase_schema.sql     ← سكيما قاعدة البيانات
 ├── css/sard.css + reports.css
 ├── js/config.js + api.js + reports.js
@@ -35,6 +36,15 @@ Authentication → Settings → Auth Providers → Email
 **ج) تشغيل fix_rls.sql:**
 - SQL Editor ← الصق `fix_rls.sql` ← Run
 - يجب أن ترى: "تم تطبيق الإعدادات بنجاح ✓"
+
+**د) تشغيل fix_records_merge.sql (مهم جداً):**
+- SQL Editor ← الصق `fix_records_merge.sql` ← Run
+
+بدون هذه الخطوة سيفشل حفظ التسميع برسالة
+"شغّل ملف fix_records_merge.sql في Supabase أولاً".
+
+الملف ينشئ دالة `sard_merge_record` التي تدمج المقاطع داخل القاعدة مع قفل
+صف الطالب، وقيداً فريداً على `(complex_id, sid)` يمنع تكرار الطلاب.
 
 ### 2️⃣ إنشاء حساب السوبر أدمن
 
@@ -117,4 +127,6 @@ D: الحلقة       |  E: جوال ولي الأمر  |  F: جوال الطا�
 | "Invalid login credentials" | تحقق من البريد وكلمة المرور |
 | التسجيل ينجح لكن الدخول يفشل | أوقف "Enable email confirmations" في Supabase |
 | "new row violates row-level security" | شغّل `fix_rls.sql` مجدداً |
+| "شغّل ملف fix_records_merge.sql" | شغّل `fix_records_merge.sql` في SQL Editor |
+| تسميعة سجّلها مسمّع تختفي | تأكد أن `fix_records_merge.sql` مُطبَّق وأن الواجهة محدّثة |
 | التقارير تعطي خطأ | تأكد أن رابط التقرير يحتوي `?c=RAHMA` |

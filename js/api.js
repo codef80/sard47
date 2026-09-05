@@ -222,6 +222,8 @@ const SardAPI = {
     return(data||[]).map(s=>({...s,halaqa:s.halaqas?.name||''}));
   },
 
+  // الهوية الفارغة تُخزَّن NULL لا '' — القيد الفريد (complex_id,sid) يسمح
+  // بعدة طلاب بلا هوية، لكنه يرفض تكرار نفس الهوية داخل المجمع.
   async createStudent(complexId,halaqaId,fields){
     const allowed={sid:1,name:1,track:1,guardian_phone:1,student_phone:1,parts_count:1};
     const clean={};
@@ -229,6 +231,7 @@ const SardAPI = {
       if(!allowed[k])return;
       // parts_count يقبل أرقام عشرية
       if(k==='parts_count')clean[k]=parseFloat(String(fields[k]||0).replace(/,/g,'.'))||0;
+      else if(k==='sid')clean[k]=String(fields[k]||'').trim()||null;
       else clean[k]=fields[k];
     });
     const row={complex_id:complexId,halaqa_id:halaqaId||null,...clean};
@@ -243,10 +246,14 @@ const SardAPI = {
     Object.keys(fields).forEach(k=>{
       if(!allowed[k])return;
       if(k==='parts_count')clean[k]=parseFloat(String(fields[k]||0).replace(/,/g,'.'))||0;
+      else if(k==='sid')clean[k]=String(fields[k]||'').trim()||null;
       else clean[k]=fields[k];
     });
     const{error}=await _sb.from('students').update(clean).eq('id',id);
-    if(error)throw error;
+    if(error){
+      if(error.code==='23505')throw new Error('هوية الطالب مستخدمة مسبقاً في هذا المجمع');
+      throw error;
+    }
   },
 
   async deleteStudent(id){
@@ -254,17 +261,21 @@ const SardAPI = {
     if(error)throw error;
   },
 
-  // استيراد بالجملة — يتحقق من الحلقات ويُنشئ أو يُحدِّث
+  // استيراد بالجملة — upsert حقيقي، لا insert.
+  // كان يستخدم insert دائماً، فإعادة استيراد نفس الشيت تُنشئ نسخة ثانية من كل
+  // طالب، وتسميعات النسخة الأولى تختفي عن الشاشة وكأنها ضاعت.
+  // الآن: الطالب صاحب الهوية يُحدَّث في مكانه عبر القيد الفريد (complex_id,sid)،
+  // والصفوف بلا هوية تُطابق بالاسم داخل نفس المجمع.
   async upsertStudentsBulk(complexId,rows,halaqas){
     const halaqaMap={};
     (halaqas||[]).forEach(h=>{ halaqaMap[h.name]=h.id; });
 
-    const toInsert=rows.map(r=>{
+    const parsed=rows.map(r=>{
       const halaqaId=r.halaqa_id||halaqaMap[r.halaqa_name]||null;
       return{
         complex_id:complexId,
         halaqa_id:halaqaId,
-        sid:String(r.sid||'').trim(),
+        sid:String(r.sid||'').trim()||null,
         name:String(r.name||'').trim(),
         track:String(r.track||'').trim(),
         guardian_phone:String(r.guardian_phone||'').trim(),
@@ -273,17 +284,50 @@ const SardAPI = {
       };
     }).filter(r=>r.name);
 
-    if(!toInsert.length)throw new Error('لم يتم تحليل أي بيانات صالحة');
+    if(!parsed.length)throw new Error('لم يتم تحليل أي بيانات صالحة');
 
-    // دفعات من 50
-    let inserted=0;
-    for(let i=0;i<toInsert.length;i+=50){
-      const batch=toInsert.slice(i,i+50);
-      const{error}=await _sb.from('students').insert(batch);
+    // الهوية المكررة داخل نفس الشيت تُفشل الـ upsert، فنُبقي آخر صف لكل هوية
+    const bySid=new Map();
+    const noSid=[];
+    parsed.forEach(r=>{ if(r.sid)bySid.set(r.sid,r); else noSid.push(r); });
+    const withSid=[...bySid.values()];
+
+    let affected=0;
+
+    // بهوية: دفعات من 50 على القيد الفريد
+    for(let i=0;i<withSid.length;i+=50){
+      const batch=withSid.slice(i,i+50);
+      const{error}=await _sb.from('students').upsert(batch,{onConflict:'complex_id,sid'});
       if(error)throw new Error('خطأ في الاستيراد: '+error.message);
-      inserted+=batch.length;
+      affected+=batch.length;
     }
-    return inserted;
+
+    // بلا هوية: مطابقة بالاسم، وإلا إضافة
+    if(noSid.length){
+      const{data:existing,error:selError}=await _sb.from('students')
+        .select('id,name').eq('complex_id',complexId);
+      if(selError)throw new Error('خطأ في الاستيراد: '+selError.message);
+      const byName=new Map();
+      (existing||[]).forEach(s=>{ byName.set(String(s.name||'').trim(),s.id); });
+
+      const toInsert=[];
+      for(const r of noSid){
+        const id=byName.get(r.name);
+        if(!id){ toInsert.push(r); continue; }
+        const{complex_id,...fields}=r;
+        const{error}=await _sb.from('students').update(fields).eq('id',id);
+        if(error)throw new Error('خطأ في الاستيراد: '+error.message);
+        affected++;
+      }
+      for(let i=0;i<toInsert.length;i+=50){
+        const batch=toInsert.slice(i,i+50);
+        const{error}=await _sb.from('students').insert(batch);
+        if(error)throw new Error('خطأ في الاستيراد: '+error.message);
+        affected+=batch.length;
+      }
+    }
+
+    return affected;
   },
 
   // ── الإعدادات ──
@@ -364,19 +408,32 @@ const SardAPI = {
     }));
   },
 
-  async saveRecord(complexId,studentId,sections){
-    // حفظ المقاطع مضغوطة — المقاطع الفارغة تُحفظ كـ {}
-    const encoded=(sections||[]).map(s=>{
-      if(!s||!s.partNumber||!s.hizb)return{};
-      return encodeSection(s);
+  // ⚠ لا ترسل مصفوفة المقاطع كاملة أبداً.
+  // كانت الدالة السابقة تستبدل كل مقاطع الطالب بما في ذاكرة هذا المتصفح،
+  // فتمحو أي تسميعة سجّلها مسمّع آخر بعد آخر تحديث للقطة هذه الصفحة —
+  // بلا خطأ ولا تحذير. الآن نرسل ما تغيّر فقط، والدمج يتم داخل القاعدة
+  // في معاملة واحدة مع قفل صف الطالب (انظر fix_records_merge.sql).
+  // upserts: مقاطع كاملة بالمفاتيح الطويلة. deletes: [{partNumber,hizb}]
+  async mergeRecord(complexId,studentId,upserts,deletes){
+    const up=(upserts||[])
+      .filter(s=>s&&s.partNumber&&s.hizb)
+      .map(encodeSection);
+    const del=(deletes||[])
+      .filter(k=>k&&k.partNumber&&k.hizb)
+      .map(k=>({p:String(k.partNumber),h:k.hizb}));
+    if(!up.length&&!del.length)return null;
+    const{data,error}=await _sb.rpc('sard_merge_record',{
+      p_complex_id:complexId,
+      p_student_id:studentId,
+      p_upserts:up,
+      p_deletes:del
     });
-    const{error}=await _sb.from('records').upsert({
-      complex_id:complexId,
-      student_id:studentId,
-      sections:encoded,
-      updated_at:new Date().toISOString()
-    },{onConflict:'complex_id,student_id'});
-    if(error)throw error;
+    if(error){
+      if(String(error.message||'').includes('sard_merge_record'))
+        throw new Error('شغّل ملف fix_records_merge.sql في Supabase أولاً');
+      throw error;
+    }
+    return decodeSections(data||[]);
   },
 
   // ── الحضور ──
